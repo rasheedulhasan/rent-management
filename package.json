@@ -1,0 +1,33 @@
+{
+  "name": "rent-collection-system",
+  "version": "1.0.0",
+  "description": "Rent Collection System using Appwrite",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "setup-db": "node scripts/setup-database.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "appwrite",
+    "rent",
+    "collection",
+    "backend"
+  ],
+  "author": "Rent Management System",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "moment": "^2.29.4",
+    "node-appwrite": "^13.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1"
+  }
+}

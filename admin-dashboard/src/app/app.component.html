@@ -1,0 +1,108 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-left">
+      <button mat-icon-button class="menu-toggle" (click)="isMobile() ? toggleMobileMenu() : toggleSidebar()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <div class="logo">
+        <mat-icon class="logo-icon">apartment</mat-icon>
+        <span class="logo-text">Rent Management</span>
+      </div>
+    </div>
+    
+    <div class="header-center">
+      <h1 class="page-title">{{ pageTitle }}</h1>
+    </div>
+    
+    <div class="header-right">
+      <button mat-icon-button class="notification-btn" [matBadge]="unreadNotifications" matBadgeSize="small">
+        <mat-icon>notifications</mat-icon>
+      </button>
+      
+      <div class="user-profile">
+        <div class="user-avatar">
+          <mat-icon>account_circle</mat-icon>
+        </div>
+        <div class="user-info">
+          <span class="user-name">Admin User</span>
+          <span class="user-role">Administrator</span>
+        </div>
+        <button mat-icon-button>
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="sidebar-overlay" [class.mobile-open]="mobileMenuOpen" (click)="closeMobileMenu()"></div>
+
+  <!-- Main Content -->
+  <div class="dashboard-main">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" [class.collapsed]="sidebarCollapsed" [class.mobile-open]="mobileMenuOpen">
+      <nav class="sidebar-nav">
+        <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>dashboard</mat-icon>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/transactions" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>receipt</mat-icon>
+          <span class="nav-label">Transactions</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/pending-rent" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>pending_actions</mat-icon>
+          <span class="nav-label">Pending Rent</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/tenants" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>people</mat-icon>
+          <span class="nav-label">Tenants</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/buildings" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>business</mat-icon>
+          <span class="nav-label">Buildings</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/users" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>supervisor_account</mat-icon>
+          <span class="nav-label">Users</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/alerts" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>notifications</mat-icon>
+          <span class="nav-label">Alerts</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/reports" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>assessment</mat-icon>
+          <span class="nav-label">Reports</span>
+        </a>
+        
+        <a class="nav-item" routerLink="/settings" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>settings</mat-icon>
+          <span class="nav-label">Settings</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="status-indicator active"></div>
+          <span>System Online</span>
+        </div>
+        <button mat-icon-button class="collapse-toggle" (click)="toggleSidebar()">
+          <mat-icon>{{ sidebarCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

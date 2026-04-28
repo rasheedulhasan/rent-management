@@ -1,0 +1,224 @@
+<div class="pending-rent-page">
+  <div class="page-header">
+    <h1>Pending Rent</h1>
+    <p>Manage overdue and pending rent payments</p>
+  </div>
+
+  <div class="stats-overview">
+    <mat-card class="stat-card total-pending">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">money_off</mat-icon>
+        <div class="stat-details">
+          <h3>Total Pending</h3>
+          <p class="stat-value">{{ totalPendingAmount | currency }}</p>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card overdue-tenants">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">warning</mat-icon>
+        <div class="stat-details">
+          <h3>Overdue Tenants</h3>
+          <p class="stat-value">{{ totalOverdueTenants }}</p>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card critical-cases">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">error</mat-icon>
+        <div class="stat-details">
+          <h3>Critical Cases</h3>
+          <p class="stat-value">{{ criticalCases }}</p>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <mat-card class="filters-card">
+    <div class="filters-header">
+      <h3>Filters</h3>
+      <button mat-button color="primary" (click)="resetFilters()">
+        <mat-icon>refresh</mat-icon>
+        Reset Filters
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Search</mat-label>
+          <input matInput [(ngModel)]="searchTerm" (keyup)="applyFilter()" placeholder="Search tenant, room, building...">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Building</mat-label>
+          <mat-select [(ngModel)]="buildingFilter" (selectionChange)="applyFilter()">
+            <mat-option *ngFor="let building of buildingOptions" [value]="building.value">
+              {{ building.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Overdue Status</mat-label>
+          <mat-select [(ngModel)]="overdueFilter" (selectionChange)="applyFilter()">
+            <mat-option *ngFor="let option of overdueOptions" [value]="option.value">
+              {{ option.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+    
+    <div class="filter-stats">
+      <span class="stat-item">
+        <mat-icon>filter_list</mat-icon>
+        Showing {{ dataSource.data.length }} pending rent cases
+      </span>
+    </div>
+  </mat-card>
+
+  <mat-card class="pending-rent-card">
+    <div class="table-container">
+      <table mat-table [dataSource]="dataSource" class="pending-rent-table">
+        <!-- Tenant Name Column -->
+        <ng-container matColumnDef="tenantName">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="tenant-cell">
+              <div class="tenant-avatar">{{ item.tenantName.charAt(0) }}</div>
+              <div class="tenant-info">
+                <strong>{{ item.tenantName }}</strong>
+                <span class="tenant-id">ID: {{ item.tenantId }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Room Number Column -->
+        <ng-container matColumnDef="roomNumber">
+          <th mat-header-cell *matHeaderCellDef>Room</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="room-cell">
+              <mat-icon class="room-icon">meeting_room</mat-icon>
+              <span>{{ item.roomNumber }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Building Column -->
+        <ng-container matColumnDef="buildingName">
+          <th mat-header-cell *matHeaderCellDef>Building</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="building-cell">
+              <mat-icon class="building-icon">business</mat-icon>
+              <span>{{ item.buildingName || 'N/A' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Pending Amount Column -->
+        <ng-container matColumnDef="pendingAmount">
+          <th mat-header-cell *matHeaderCellDef>Pending Amount</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="amount-cell">
+              <span class="amount-value">{{ item.pendingAmount | currency }}</span>
+              <span class="amount-total">of {{ item.totalDue | currency }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Days Overdue Column -->
+        <ng-container matColumnDef="daysOverdue">
+          <th mat-header-cell *matHeaderCellDef>Days Overdue</th>
+          <td mat-cell *matCellDef="let item">
+            <span class="overdue-badge" [class]="getStatusClass(item.daysOverdue)">
+              {{ item.daysOverdue }} days
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Last Payment Date Column -->
+        <ng-container matColumnDef="lastPaymentDate">
+          <th mat-header-cell *matHeaderCellDef>Last Payment</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="date-cell">
+              <div class="date">{{ item.lastPaymentDate | date: 'MMM dd, yyyy' }}</div>
+              <div class="days-ago">{{ getDaysAgo(item.lastPaymentDate) }} ago</div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Reason Column -->
+        <ng-container matColumnDef="reason">
+          <th mat-header-cell *matHeaderCellDef>Reason</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="reason-cell">
+              <mat-icon class="reason-icon">info</mat-icon>
+              <span class="reason-text">{{ item.reason }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let item">
+            <div class="actions-cell">
+              <button mat-icon-button color="primary" (click)="sendReminder(item)" matTooltip="Send Reminder">
+                <mat-icon>notifications</mat-icon>
+              </button>
+              <button mat-icon-button color="accent" (click)="initiatePayment(item)" matTooltip="Initiate Payment">
+                <mat-icon>payments</mat-icon>
+              </button>
+              <button mat-icon-button color="basic" (click)="viewTenantDetails(item)" matTooltip="View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+
+    <div class="table-footer">
+      <div class="export-actions">
+        <button mat-button (click)="exportPendingReport()">
+          <mat-icon>download</mat-icon>
+          Export Report
+        </button>
+      </div>
+      
+      <div class="summary">
+        <div class="summary-item">
+          <span class="summary-label">Average Overdue:</span>
+          <span class="summary-value">{{ getAverageOverdue() }} days</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Oldest Overdue:</span>
+          <span class="summary-value">{{ getOldestOverdue() }} days</span>
+        </div>
+      </div>
+    </div>
+  </mat-card>
+
+  <div class="action-buttons">
+    <button mat-raised-button color="primary" (click)="sendBulkReminders()">
+      <mat-icon>campaign</mat-icon>
+      Send Bulk Reminders
+    </button>
+    <button mat-raised-button color="accent" (click)="generateReport()">
+      <mat-icon>assessment</mat-icon>
+      Generate Monthly Report
+    </button>
+  </div>
+</div>

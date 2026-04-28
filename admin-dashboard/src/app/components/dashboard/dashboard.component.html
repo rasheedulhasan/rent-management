@@ -1,0 +1,207 @@
+<div class="dashboard-page">
+  <div class="page-header">
+    <h1>Dashboard Overview</h1>
+    <p class="subtitle">Monitor your rent collection performance and key metrics</p>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading dashboard data...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error && !loading) {
+    <div class="error-container">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-raised-button color="primary" (click)="loadDashboardStats()">Retry</button>
+    </div>
+  }
+
+  <!-- Stats Cards -->
+  @if (stats && !loading) {
+    <div class="stats-grid">
+      <!-- Total Rent Card -->
+      <mat-card class="stat-card total-rent">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>attach_money</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Total Rent</h3>
+            <p class="stat-value">{{ formatCurrency(stats.totalRent) }}</p>
+            <p class="stat-description">Expected monthly revenue</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="trend positive">
+            <mat-icon>trending_up</mat-icon>
+            +12% from last month
+          </span>
+        </div>
+      </mat-card>
+
+      <!-- Collected Rent Card -->
+      <mat-card class="stat-card collected-rent">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Collected Rent</h3>
+            <p class="stat-value">{{ formatCurrency(stats.collectedRent) }}</p>
+            <p class="stat-description">{{ getCollectionRate() | number:'1.1-1' }}% collection rate</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getCollectionRate()"></div>
+          </div>
+        </div>
+      </mat-card>
+
+      <!-- Pending Rent Card -->
+      <mat-card class="stat-card pending-rent">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>pending_actions</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Pending Rent</h3>
+            <p class="stat-value">{{ formatCurrency(stats.pendingRent) }}</p>
+            <p class="stat-description">{{ stats.totalTenants - (stats.collectedRent / (stats.totalRent / stats.totalTenants)) | number:'1.0-0' }} tenants pending</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="trend warning">
+            <mat-icon>warning</mat-icon>
+            Requires follow-up
+          </span>
+        </div>
+      </mat-card>
+
+      <!-- Total Tenants Card -->
+      <mat-card class="stat-card total-tenants" (click)="navigateToTenants()" style="cursor: pointer;">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>people</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Total Tenants</h3>
+            <p class="stat-value">{{ stats.totalTenants }}</p>
+            <p class="stat-description">Active tenants in system</p>
+            <div class="click-hint">
+              <mat-icon>arrow_forward</mat-icon>
+              <span>Click to view all tenants</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="trend">
+            <mat-icon>group_add</mat-icon>
+            +3 this month
+          </span>
+        </div>
+      </mat-card>
+
+      <!-- Occupied Rooms Card -->
+      <mat-card class="stat-card occupied-rooms">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>meeting_room</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Occupied Rooms</h3>
+            <p class="stat-value">{{ stats.occupiedRooms }}</p>
+            <p class="stat-description">{{ getOccupancyRate() | number:'1.1-1' }}% occupancy rate</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getOccupancyRate()"></div>
+          </div>
+        </div>
+      </mat-card>
+
+      <!-- Vacant Rooms Card -->
+      <mat-card class="stat-card vacant-rooms">
+        <div class="card-content">
+          <div class="card-icon">
+            <mat-icon>meeting_room</mat-icon>
+          </div>
+          <div class="card-details">
+            <h3>Vacant Rooms</h3>
+            <p class="stat-value">{{ stats.vacantRooms }}</p>
+            <p class="stat-description">Available for new tenants</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="trend">
+            <mat-icon>real_estate_agent</mat-icon>
+            Marketing needed
+          </span>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Monthly Collection Chart -->
+    <div class="chart-section">
+      <mat-card class="chart-card">
+        <div class="card-header">
+          <h3>Monthly Collection Trend</h3>
+          <button mat-button color="primary">
+            <mat-icon>calendar_today</mat-icon>
+            This Year
+          </button>
+        </div>
+        <div class="chart-container">
+          <div class="chart-placeholder">
+            <mat-icon>bar_chart</mat-icon>
+            <p>Monthly collection chart will be displayed here</p>
+            <p class="chart-hint">Using Chart.js integration</p>
+          </div>
+        </div>
+        <div class="chart-summary">
+          <div class="summary-item">
+            <span class="summary-label">Total Collected</span>
+            <span class="summary-value">{{ formatCurrency(calculateTotalMonthlyCollection()) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Average Monthly</span>
+            <span class="summary-value">{{ formatCurrency(calculateAverageMonthlyCollection()) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Growth</span>
+            <span class="summary-value positive">+15.2%</span>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="actions-grid">
+        <button mat-raised-button color="primary" class="action-button">
+          <mat-icon>add_circle</mat-icon>
+          Record Payment
+        </button>
+        <button mat-raised-button color="accent" class="action-button" (click)="openAddTenantDialog()">
+          <mat-icon>person_add</mat-icon>
+          Add New Tenant
+        </button>
+        <button mat-raised-button class="action-button">
+          <mat-icon>receipt</mat-icon>
+          Generate Report
+        </button>
+        <button mat-raised-button class="action-button">
+          <mat-icon>notifications</mat-icon>
+          Send Reminders
+        </button>
+      </div>
+    </div>
+  }
+</div>

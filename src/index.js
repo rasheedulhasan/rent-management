@@ -22,15 +22,17 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ SERVE ANGULAR APP
 // =====================
 const angularPath = path.join(__dirname, '../admin-dashboard');
+// Support BOTH with and without prefix
+app.use('/rent-management/admin-dashboard', express.static(angularPath));
+app.use('/admin-dashboard', express.static(angularPath));
 
-// Static files
-app.use(
-  '/rent-management/admin-dashboard',
-  express.static(angularPath)
-);
+// Fallbacks
+app.get(['/rent-management/admin-dashboard', '/admin-dashboard'], (req, res) => {
+  res.sendFile(path.join(angularPath, 'index.csr.html'));
+});
 
-// Angular routing fallback
-app.get('/rent-management/admin-dashboard/*', (req, res) => {
+app.get(['/rent-management/admin-dashboard/*', '/admin-dashboard/*'], (req, res, next) => {
+  if (req.path.includes('.')) return next();
   res.sendFile(path.join(angularPath, 'index.csr.html'));
 });
 // =====================

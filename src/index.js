@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // ✅ added
+const path = require('path');
 require('dotenv').config();
 
 const buildingRoutes = require('./routes/buildingRoutes');
@@ -13,37 +13,43 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// =====================
 // Middleware
+// =====================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // =====================
-// ✅ SERVE ANGULAR APP
+// Angular Path
 // =====================
 const angularPath = path.join(__dirname, '../admin-dashboard');
-// Support BOTH with and without prefix
-app.use('/rent-management/admin-dashboard', express.static(angularPath));
+
+// =====================
+// Serve Angular (IMPORTANT)
+// =====================
 app.use('/admin-dashboard', express.static(angularPath));
 
-// Fallbacks
-app.get(['/rent-management/admin-dashboard', '/admin-dashboard'], (req, res) => {
-  res.sendFile(path.join(angularPath, 'index.csr.html'));
-});
-
-app.get(['/rent-management/admin-dashboard/*', '/admin-dashboard/*'], (req, res, next) => {
+// Angular fallback (ONLY ONE, clean version)
+app.get('/admin-dashboard/*', (req, res, next) => {
   if (req.path.includes('.')) return next();
   res.sendFile(path.join(angularPath, 'index.csr.html'));
 });
+
+// Optional root redirect
+app.get('/admin-dashboard', (req, res) => {
+  res.sendFile(path.join(angularPath, 'index.csr.html'));
+});
+
 // =====================
-// Health check endpoint
+// Health check
 // =====================
 app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        service: 'Rent Collection System API'
-    });
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'Rent Collection System API'
+  });
 });
 
 // =====================
@@ -57,35 +63,36 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // =====================
-// 404 handler (KEEP LAST)
+// 404 handler (LAST)
 // =====================
 app.use('*', (req, res) => {
-    res.status(404).json({
-        error: 'Route not found',
-        path: req.originalUrl
-    });
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.originalUrl
+  });
 });
 
 // =====================
-// Error handling
+// Error handler
 // =====================
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development'
-            ? err.message
-            : 'Something went wrong'
-    });
+  console.error('Server error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message:
+      process.env.NODE_ENV === 'development'
+        ? err.message
+        : 'Something went wrong'
+  });
 });
 
 // =====================
 // Start server
 // =====================
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`API Base URL: http://localhost:${PORT}/api`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`API Base URL: http://localhost:${PORT}/api`);
+  console.log(`Dashboard: http://localhost:${PORT}/admin-dashboard`);
 });
 
 module.exports = app;

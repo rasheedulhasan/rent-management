@@ -8,14 +8,14 @@ buildscript {
         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
         kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.23'
 
-        ndkVersion = "26.1.10909125"
+        ndkVersion = "25.1.8937393"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath('com.android.tools.build:gradle')
+        classpath('com.android.tools.build:gradle:8.3.0')
         classpath('com.facebook.react:react-native-gradle-plugin')
         classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
     }

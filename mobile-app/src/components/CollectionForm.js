@@ -94,7 +94,7 @@ const CollectionForm = () => {
     setSubmitting(true);
 
     try {
-      const selectedTenant = tenants.find(t => t.id === selectedTenantId || t.tenantId === selectedTenantId);
+      const selectedTenant = Array.isArray(tenants) ? tenants.find(t => t.id === selectedTenantId || t.tenantId === selectedTenantId) : undefined;
       const collectionData = {
         tenantId: selectedTenantId,
         collectedBy: collectedBy.trim(),
@@ -297,7 +297,7 @@ const CollectionForm = () => {
               </Text>
             </TouchableOpacity>
           </View>
-          {tenants.length === 0 ? (
+          {(!tenants || tenants.length === 0) ? (
             <View style={styles.noTenants}>
               <Text style={styles.noTenantsText}>
                 {isOnline ? 'No tenants available' : 'No cached tenants. Connect to internet to load tenants.'}
@@ -316,7 +316,7 @@ const CollectionForm = () => {
                 style={styles.picker}
               >
                 <Picker.Item label="Select a tenant..." value="" />
-                {tenants.map((tenant) => (
+                {Array.isArray(tenants) && tenants.map((tenant) => (
                   <Picker.Item
                     key={tenant.id || tenant.tenantId}
                     label={`${tenant.name} - ${tenant.building || ''} ${tenant.roomNumber || ''}`}

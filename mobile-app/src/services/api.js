@@ -1,13 +1,38 @@
 // API service for communicating with backend
 import axios from 'axios';
+import { Platform } from 'react-native';
 
-// Use environment variable or fallback to local IP for development
-// For production, set REACT_NATIVE_API_BASE_URL in .env or build configuration
-const API_BASE_URL = process.env.REACT_NATIVE_API_BASE_URL || 'https://monkfish-app-a3cq3.ondigitalocean.app/rent-management/api';
+// Determine API base URL based on environment
+// For development on Android emulator: use 10.0.2.2:3001
+// For development on iOS simulator: use localhost:3001
+// For physical device development: use your computer's IP address
+// For production: use environment variable or production URL
+let API_BASE_URL;
+
+if (__DEV__) {
+  // Development mode
+  if (Platform.OS === 'android') {
+    // Android emulator uses 10.0.2.2 to connect to localhost on host machine
+    API_BASE_URL = 'http://10.0.2.2:3001/api';
+  } else if (Platform.OS === 'ios') {
+    // iOS simulator can use localhost
+    API_BASE_URL = 'http://localhost:3001/api';
+  } else {
+    // Fallback for web or other platforms
+    API_BASE_URL = 'http://localhost:3001/api';
+  }
+} else {
+  // Production mode - use environment variable or production URL
+  API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ||
+                 process.env.REACT_NATIVE_API_BASE_URL ||
+                 'https://monkfish-app-a3cq3.ondigitalocean.app/api';
+}
+
+console.log('API Base URL:', API_BASE_URL, 'Platform:', Platform.OS);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // Increased timeout for mobile networks
+  timeout: 30000, // Increased timeout for mobile networks and development
   headers: {
     'Content-Type': 'application/json',
   },

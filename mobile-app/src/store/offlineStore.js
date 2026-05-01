@@ -1,9 +1,17 @@
 import * as SQLite from 'expo-sqlite/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'react-native-uuid';
 
 // Open database
 const db = SQLite.openDatabase('rent_management.db');
+
+// Simple UUID v4 generator (for offline use)
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 // Database initialization state
 let initializationPromise = null;
@@ -102,7 +110,7 @@ export const addPendingCollection = (collection) => {
     try {
       await ensureDatabaseInitialized();
       
-      const localId = collection.localId || uuidv4();
+      const localId = collection.localId || generateUUID();
       const now = new Date().toISOString();
       
       db.transaction(tx => {
@@ -255,19 +263,33 @@ export const cacheTenants = (tenants) => {
           
           // Insert new tenants
           tenants.forEach(tenant => {
+            // Map API fields to expected frontend fields
+            const mappedTenant = {
+              ...tenant,
+              // Ensure standard field names
+              name: tenant.full_name || tenant.name,
+              phone: tenant.phone_number || tenant.phone,
+              monthlyRent: tenant.monthly_rent || tenant.monthlyRent,
+              building: tenant.building || '',
+              roomNumber: tenant.roomNumber || '',
+              // Ensure id fields
+              id: tenant.id,
+              tenantId: tenant.tenantId || tenant.id
+            };
+            
             tx.executeSql(
               `INSERT INTO cached_tenants
               (tenantId, name, building, roomNumber, phone, monthlyRent, lastSync, data)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
               [
-                tenant.id || tenant.tenantId,
-                tenant.name,
-                tenant.building || '',
-                tenant.roomNumber || '',
-                tenant.phone || '',
-                tenant.monthlyRent || 0,
+                mappedTenant.id || mappedTenant.tenantId,
+                mappedTenant.name,
+                mappedTenant.building,
+                mappedTenant.roomNumber,
+                mappedTenant.phone,
+                mappedTenant.monthlyRent || 0,
                 now,
-                JSON.stringify(tenant)
+                JSON.stringify(mappedTenant)
               ]
             );
           });

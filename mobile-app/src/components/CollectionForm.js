@@ -33,6 +33,20 @@ const CollectionForm = () => {
   const [paymentMode, setPaymentMode] = useState('cash');
   const [notes, setNotes] = useState('');
 
+  // Helper to map tenant fields from API to expected frontend format
+  const mapTenant = (tenant) => ({
+    ...tenant,
+    name: tenant.full_name || tenant.name,
+    phone: tenant.phone_number || tenant.phone,
+    monthlyRent: tenant.monthly_rent || tenant.monthlyRent,
+    monthly_rent: tenant.monthly_rent || tenant.monthlyRent, // Keep original field name too
+    building: tenant.building || '',
+    roomNumber: tenant.roomNumber || '',
+    room_id: tenant.room_id || tenant.roomId || '', // Include room_id for backend
+    id: String(tenant.$id || tenant.id), // Appwrite uses $id
+    tenantId: String(tenant.$id || tenant.tenantId || tenant.id)
+  });
+
   // Load tenants on component mount
   useEffect(() => {
     loadTenants();
@@ -45,13 +59,25 @@ const CollectionForm = () => {
       const cachedTenants = await getCachedTenants();
       
       if (cachedTenants.length > 0) {
-        setTenants(cachedTenants);
+        // Map cached tenants to ensure consistent field names
+        const mappedCachedTenants = cachedTenants.map(mapTenant);
+        console.log('Loaded cached tenants:', mappedCachedTenants.length, 'tenants');
+        if (mappedCachedTenants.length > 0) {
+          console.log('First tenant:', mappedCachedTenants[0].name);
+        }
+        setTenants(mappedCachedTenants);
       } else {
         // If no cached tenants and online, fetch from server
         if (isOnline) {
           try {
             const freshTenants = await rentCollectionsApi.getTenants();
-            setTenants(freshTenants);
+            // Map API fields to frontend format
+            const mappedFreshTenants = freshTenants.map(mapTenant);
+            console.log('Loaded fresh tenants from API:', mappedFreshTenants.length, 'tenants');
+            if (mappedFreshTenants.length > 0) {
+              console.log('First tenant:', mappedFreshTenants[0].name);
+            }
+            setTenants(mappedFreshTenants);
           } catch (error) {
             const errorInfo = ErrorHandler.handleApiError(error, 'loadTenants');
             console.error('Error fetching tenants:', errorInfo);
@@ -95,6 +121,13 @@ const CollectionForm = () => {
 
     try {
       const selectedTenant = Array.isArray(tenants) ? tenants.find(t => t.id === selectedTenantId || t.tenantId === selectedTenantId) : undefined;
+      
+      if (!selectedTenant) {
+        Alert.alert('Error', 'Selected tenant not found');
+        setSubmitting(false);
+        return;
+      }
+      
       const collectionData = {
         tenantId: selectedTenantId,
         collectedBy: collectedBy.trim(),
@@ -102,6 +135,8 @@ const CollectionForm = () => {
         paymentMode,
         notes: notes.trim(),
         collectedAt: new Date().toISOString(),
+        // Include additional fields needed by backend
+        tenant: selectedTenant,
       };
 
       if (isOnline) {
@@ -247,7 +282,9 @@ const CollectionForm = () => {
     setLoading(true);
     try {
       const freshTenants = await rentCollectionsApi.getTenants();
-      setTenants(freshTenants);
+      // Map API fields to frontend format
+      const mappedFreshTenants = freshTenants.map(mapTenant);
+      setTenants(mappedFreshTenants);
       Alert.alert('Success', 'Tenants list refreshed successfully');
     } catch (error) {
       const errorInfo = ErrorHandler.handleApiError(error, 'refreshTenants');
@@ -309,21 +346,38 @@ const CollectionForm = () => {
               )}
             </View>
           ) : (
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={selectedTenantId}
-                onValueChange={(itemValue) => setSelectedTenantId(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select a tenant..." value="" />
-                {Array.isArray(tenants) && tenants.map((tenant) => (
-                  <Picker.Item
-                    key={tenant.id || tenant.tenantId}
-                    label={`${tenant.name} - ${tenant.building || ''} ${tenant.roomNumber || ''}`}
-                    value={tenant.id || tenant.tenantId}
-                  />
-                ))}
-              </Picker>
+            <View>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={selectedTenantId}
+                  onValueChange={(itemValue) => {
+                    console.log('Tenant selected:', itemValue);
+                    setSelectedTenantId(itemValue);
+                  }}
+                  style={styles.picker}
+                  key={`tenant-picker-${tenants.length}-${selectedTenantId}`}
+                >
+                  <Picker.Item label="Select a tenant..." value="" />
+                  {Array.isArray(tenants) && tenants.map((tenant) => (
+                    <Picker.Item
+                      key={tenant.id || tenant.tenantId}
+                      label={`${tenant.name} - ${tenant.building || ''} ${tenant.roomNumber || ''}`}
+                      value={tenant.id || tenant.tenantId}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              {selectedTenantId && (
+                <View style={styles.selectedTenantContainer}>
+                  <Text style={styles.selectedTenantLabel}>Selected Tenant:</Text>
+                  <Text style={styles.selectedTenantName}>
+                    {(() => {
+                      const selectedTenant = tenants.find(t => t.id === selectedTenantId || t.tenantId === selectedTenantId);
+                      return selectedTenant ? selectedTenant.name : 'Unknown';
+                    })()}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -607,6 +661,25 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#666',
+  },
+  selectedTenantContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  selectedTenantLabel: {
+    fontSize: 14,
+    color: '#1976D2',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  selectedTenantName: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
   }
 });
 

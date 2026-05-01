@@ -54,7 +54,24 @@ export const rentCollectionsApi = {
   // Submit a rent collection
   submitCollection: async (collectionData) => {
     try {
-      const response = await api.post('/rent_collections', collectionData);
+      // Transform mobile app data format to backend format
+      const selectedTenant = collectionData.tenant;
+      const transformedData = {
+        tenant_id: collectionData.tenantId,
+        // Use room_id from tenant if available, otherwise use a default
+        room_id: selectedTenant?.room_id || selectedTenant?.roomId || selectedTenant?.roomNumber || 'default_room',
+        collected_by: collectionData.collectedBy,
+        amount: collectionData.amount,
+        payment_method: collectionData.paymentMode,
+        payment_status: 'paid', // Default to paid for collections
+        monthly_rent: selectedTenant?.monthly_rent || selectedTenant?.monthlyRent || 0,
+        rent_due_date: new Date().toISOString().split('T')[0], // Today's date as due date
+        remarks: collectionData.notes || '',
+        transaction_date: collectionData.collectedAt || new Date().toISOString(),
+      };
+      
+      console.log('Submitting transaction:', transformedData);
+      const response = await api.post('/transactions', transformedData);
       return response.data;
     } catch (error) {
       console.error('Error submitting collection:', error);
@@ -81,7 +98,7 @@ export const rentCollectionsApi = {
   // Check if collection already exists (idempotency check)
   checkDuplicate: async (localId) => {
     try {
-      const response = await api.get(`/rent_collections/check?localId=${localId}`);
+      const response = await api.get(`/transactions/check?localId=${localId}`);
       return response.data.exists;
     } catch (error) {
       // If endpoint doesn't exist, assume no duplicate

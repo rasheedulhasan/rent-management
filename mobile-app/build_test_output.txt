@@ -1,0 +1,588 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Configuration on demand is an incubating feature.
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-asset[0m (10.0.10)
+  - [32mexpo-constants[0m (16.0.2)
+  - [32mexpo-file-system[0m (17.0.1)
+  - [32mexpo-font[0m (12.0.10)
+  - [32mexpo-keep-awake[0m (13.0.2)
+  - [32mexpo-modules-core[0m (1.12.26)
+  - [32mexpo-sqlite[0m (14.0.6)
+  - [32mexpo-system-ui[0m (3.0.7)
+
+
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generatePackageList
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :expo:generateExpoModulesPackageListTask UP-TO-DATE
+> Task :expo:preBuild UP-TO-DATE
+> Task :expo:preDebugBuild UP-TO-DATE
+> Task :expo:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-asset:preBuild UP-TO-DATE
+> Task :expo-asset:preDebugBuild UP-TO-DATE
+> Task :expo-asset:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-constants:createExpoConfig UP-TO-DATE
+> Task :expo-constants:preBuild UP-TO-DATE
+> Task :expo-constants:preDebugBuild UP-TO-DATE
+> Task :expo-constants:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-file-system:preBuild UP-TO-DATE
+> Task :expo-file-system:preDebugBuild UP-TO-DATE
+> Task :expo-file-system:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-font:preBuild UP-TO-DATE
+> Task :expo-font:preDebugBuild UP-TO-DATE
+> Task :expo-font:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-keep-awake:preBuild UP-TO-DATE
+> Task :expo-keep-awake:preDebugBuild UP-TO-DATE
+> Task :expo-keep-awake:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-modules-core:preDebugBuild UP-TO-DATE
+> Task :expo-modules-core:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-sqlite:preBuild UP-TO-DATE
+> Task :expo-sqlite:preDebugBuild UP-TO-DATE
+> Task :expo-sqlite:writeDebugAarMetadata UP-TO-DATE
+> Task :expo-system-ui:preBuild UP-TO-DATE
+> Task :expo-system-ui:preDebugBuild UP-TO-DATE
+> Task :expo-system-ui:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-async-storage_async-storage:preBuild UP-TO-DATE
+> Task :react-native-async-storage_async-storage:preDebugBuild UP-TO-DATE
+> Task :react-native-async-storage_async-storage:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-community_netinfo:preBuild UP-TO-DATE
+> Task :react-native-community_netinfo:preDebugBuild UP-TO-DATE
+> Task :react-native-community_netinfo:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-picker_picker:preBuild UP-TO-DATE
+> Task :react-native-picker_picker:preDebugBuild UP-TO-DATE
+> Task :react-native-picker_picker:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:preDebugBuild UP-TO-DATE
+> Task :react-native-safe-area-context:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-screens:preBuild UP-TO-DATE
+> Task :react-native-screens:preDebugBuild UP-TO-DATE
+> Task :react-native-screens:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :expo:generateDebugResValues UP-TO-DATE
+> Task :expo:generateDebugResources UP-TO-DATE
+> Task :expo:packageDebugResources UP-TO-DATE
+> Task :expo-asset:generateDebugResValues UP-TO-DATE
+> Task :expo-asset:generateDebugResources UP-TO-DATE
+> Task :expo-asset:packageDebugResources UP-TO-DATE
+> Task :expo-constants:generateDebugResValues UP-TO-DATE
+> Task :expo-constants:generateDebugResources UP-TO-DATE
+> Task :expo-constants:packageDebugResources UP-TO-DATE
+> Task :expo-file-system:generateDebugResValues UP-TO-DATE
+> Task :expo-file-system:generateDebugResources UP-TO-DATE
+> Task :expo-file-system:packageDebugResources UP-TO-DATE
+> Task :expo-font:generateDebugResValues UP-TO-DATE
+> Task :expo-font:generateDebugResources UP-TO-DATE
+> Task :expo-font:packageDebugResources UP-TO-DATE
+> Task :expo-keep-awake:generateDebugResValues UP-TO-DATE
+> Task :expo-keep-awake:generateDebugResources UP-TO-DATE
+> Task :expo-keep-awake:packageDebugResources UP-TO-DATE
+> Task :expo-modules-core:generateDebugResValues UP-TO-DATE
+> Task :expo-modules-core:generateDebugResources UP-TO-DATE
+> Task :expo-modules-core:packageDebugResources UP-TO-DATE
+> Task :expo-sqlite:generateDebugResValues UP-TO-DATE
+> Task :expo-sqlite:generateDebugResources UP-TO-DATE
+> Task :expo-sqlite:packageDebugResources UP-TO-DATE
+> Task :expo-system-ui:generateDebugResValues UP-TO-DATE
+> Task :expo-system-ui:generateDebugResources UP-TO-DATE
+> Task :expo-system-ui:packageDebugResources UP-TO-DATE
+> Task :react-native-async-storage_async-storage:generateDebugResValues UP-TO-DATE
+> Task :react-native-async-storage_async-storage:generateDebugResources UP-TO-DATE
+> Task :react-native-async-storage_async-storage:packageDebugResources UP-TO-DATE
+> Task :react-native-community_netinfo:generateDebugResValues UP-TO-DATE
+> Task :react-native-community_netinfo:generateDebugResources UP-TO-DATE
+> Task :react-native-community_netinfo:packageDebugResources UP-TO-DATE
+> Task :react-native-picker_picker:generateDebugResValues UP-TO-DATE
+> Task :react-native-picker_picker:generateDebugResources UP-TO-DATE
+> Task :react-native-picker_picker:packageDebugResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugResValues UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugResources UP-TO-DATE
+> Task :react-native-safe-area-context:packageDebugResources UP-TO-DATE
+> Task :react-native-screens:generateDebugResValues UP-TO-DATE
+> Task :react-native-screens:generateDebugResources UP-TO-DATE
+> Task :react-native-screens:packageDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :expo:extractDeepLinksDebug UP-TO-DATE
+> Task :expo:processDebugManifest UP-TO-DATE
+> Task :expo-asset:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-asset:processDebugManifest UP-TO-DATE
+> Task :expo-constants:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-constants:processDebugManifest UP-TO-DATE
+> Task :expo-file-system:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-file-system:processDebugManifest UP-TO-DATE
+> Task :expo-font:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-font:processDebugManifest UP-TO-DATE
+> Task :expo-keep-awake:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-keep-awake:processDebugManifest UP-TO-DATE
+> Task :expo-modules-core:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-modules-core:processDebugManifest UP-TO-DATE
+> Task :expo-sqlite:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-sqlite:processDebugManifest UP-TO-DATE
+> Task :expo-system-ui:extractDeepLinksDebug UP-TO-DATE
+> Task :expo-system-ui:processDebugManifest UP-TO-DATE
+> Task :react-native-async-storage_async-storage:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-async-storage_async-storage:processDebugManifest UP-TO-DATE
+> Task :react-native-community_netinfo:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-community_netinfo:processDebugManifest UP-TO-DATE
+> Task :react-native-picker_picker:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-picker_picker:processDebugManifest UP-TO-DATE
+> Task :react-native-safe-area-context:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-safe-area-context:processDebugManifest UP-TO-DATE
+> Task :react-native-screens:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-screens:processDebugManifest UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :expo:compileDebugLibraryResources UP-TO-DATE
+> Task :expo:parseDebugLocalResources UP-TO-DATE
+> Task :expo:generateDebugRFile UP-TO-DATE
+> Task :expo-asset:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-asset:parseDebugLocalResources UP-TO-DATE
+> Task :expo-asset:generateDebugRFile UP-TO-DATE
+> Task :expo-constants:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-constants:parseDebugLocalResources UP-TO-DATE
+> Task :expo-constants:generateDebugRFile UP-TO-DATE
+> Task :expo-file-system:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-file-system:parseDebugLocalResources UP-TO-DATE
+> Task :expo-file-system:generateDebugRFile UP-TO-DATE
+> Task :expo-font:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-font:parseDebugLocalResources UP-TO-DATE
+> Task :expo-font:generateDebugRFile UP-TO-DATE
+> Task :expo-keep-awake:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-keep-awake:parseDebugLocalResources UP-TO-DATE
+> Task :expo-keep-awake:generateDebugRFile UP-TO-DATE
+> Task :expo-modules-core:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-modules-core:parseDebugLocalResources UP-TO-DATE
+> Task :expo-modules-core:generateDebugRFile UP-TO-DATE
+> Task :expo-sqlite:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-sqlite:parseDebugLocalResources UP-TO-DATE
+> Task :expo-sqlite:generateDebugRFile UP-TO-DATE
+> Task :expo-system-ui:compileDebugLibraryResources UP-TO-DATE
+> Task :expo-system-ui:parseDebugLocalResources UP-TO-DATE
+> Task :expo-system-ui:generateDebugRFile UP-TO-DATE
+> Task :react-native-async-storage_async-storage:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-async-storage_async-storage:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-async-storage_async-storage:generateDebugRFile UP-TO-DATE
+> Task :react-native-community_netinfo:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-community_netinfo:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-community_netinfo:generateDebugRFile UP-TO-DATE
+> Task :react-native-picker_picker:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-picker_picker:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-picker_picker:generateDebugRFile UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-safe-area-context:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugRFile UP-TO-DATE
+> Task :react-native-screens:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-screens:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-screens:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :expo:checkKotlinGradlePluginConfigurationErrors
+> Task :expo:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-asset:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-asset:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-modules-core:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-modules-core:compileDebugKotlin UP-TO-DATE
+> Task :expo-modules-core:javaPreCompileDebug UP-TO-DATE
+> Task :expo-modules-core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-modules-core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-asset:compileDebugKotlin UP-TO-DATE
+> Task :expo-asset:javaPreCompileDebug UP-TO-DATE
+> Task :expo-asset:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-asset:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-constants:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-constants:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-constants:compileDebugKotlin UP-TO-DATE
+> Task :expo-constants:javaPreCompileDebug UP-TO-DATE
+> Task :expo-constants:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-constants:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-file-system:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-file-system:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-file-system:compileDebugKotlin UP-TO-DATE
+> Task :expo-file-system:javaPreCompileDebug UP-TO-DATE
+> Task :expo-file-system:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-file-system:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-font:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-font:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-font:compileDebugKotlin UP-TO-DATE
+> Task :expo-font:javaPreCompileDebug UP-TO-DATE
+> Task :expo-font:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-font:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-keep-awake:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-keep-awake:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-keep-awake:compileDebugKotlin UP-TO-DATE
+> Task :expo-keep-awake:javaPreCompileDebug UP-TO-DATE
+> Task :expo-keep-awake:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-keep-awake:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-sqlite:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-sqlite:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-sqlite:compileDebugKotlin UP-TO-DATE
+> Task :expo-sqlite:javaPreCompileDebug UP-TO-DATE
+> Task :expo-sqlite:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-sqlite:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-system-ui:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-system-ui:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-system-ui:compileDebugKotlin UP-TO-DATE
+> Task :expo-system-ui:javaPreCompileDebug UP-TO-DATE
+> Task :expo-system-ui:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-system-ui:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo:compileDebugKotlin UP-TO-DATE
+> Task :expo:javaPreCompileDebug UP-TO-DATE
+> Task :expo:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-async-storage_async-storage:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-async-storage_async-storage:javaPreCompileDebug UP-TO-DATE
+> Task :react-native-async-storage_async-storage:compileDebugJavaWithJavac UP-TO-DATE
+> Task :react-native-async-storage_async-storage:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-community_netinfo:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-community_netinfo:javaPreCompileDebug UP-TO-DATE
+> Task :react-native-community_netinfo:compileDebugJavaWithJavac UP-TO-DATE
+> Task :react-native-community_netinfo:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-picker_picker:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-picker_picker:javaPreCompileDebug UP-TO-DATE
+> Task :react-native-picker_picker:compileDebugJavaWithJavac UP-TO-DATE
+> Task :react-native-picker_picker:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-safe-area-context:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugKotlin UP-TO-DATE
+> Task :react-native-safe-area-context:javaPreCompileDebug UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugJavaWithJavac UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-screens:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-screens:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-screens:javaPreCompileDebug UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :expo:mergeDebugShaders UP-TO-DATE
+> Task :expo:compileDebugShaders NO-SOURCE
+> Task :expo:generateDebugAssets UP-TO-DATE
+> Task :expo:packageDebugAssets UP-TO-DATE
+> Task :expo-asset:mergeDebugShaders UP-TO-DATE
+> Task :expo-asset:compileDebugShaders NO-SOURCE
+> Task :expo-asset:generateDebugAssets UP-TO-DATE
+> Task :expo-asset:packageDebugAssets UP-TO-DATE
+> Task :expo-constants:mergeDebugShaders UP-TO-DATE
+> Task :expo-constants:compileDebugShaders NO-SOURCE
+> Task :expo-constants:generateDebugAssets UP-TO-DATE
+> Task :expo-constants:packageDebugAssets UP-TO-DATE
+> Task :expo-file-system:mergeDebugShaders UP-TO-DATE
+> Task :expo-file-system:compileDebugShaders NO-SOURCE
+> Task :expo-file-system:generateDebugAssets UP-TO-DATE
+> Task :expo-file-system:packageDebugAssets UP-TO-DATE
+> Task :expo-font:mergeDebugShaders UP-TO-DATE
+> Task :expo-font:compileDebugShaders NO-SOURCE
+> Task :expo-font:generateDebugAssets UP-TO-DATE
+> Task :expo-font:packageDebugAssets UP-TO-DATE
+> Task :expo-keep-awake:mergeDebugShaders UP-TO-DATE
+> Task :expo-keep-awake:compileDebugShaders NO-SOURCE
+> Task :expo-keep-awake:generateDebugAssets UP-TO-DATE
+> Task :expo-keep-awake:packageDebugAssets UP-TO-DATE
+> Task :expo-modules-core:mergeDebugShaders UP-TO-DATE
+> Task :expo-modules-core:compileDebugShaders NO-SOURCE
+> Task :expo-modules-core:generateDebugAssets UP-TO-DATE
+> Task :expo-modules-core:packageDebugAssets UP-TO-DATE
+> Task :expo-sqlite:mergeDebugShaders UP-TO-DATE
+> Task :expo-sqlite:compileDebugShaders NO-SOURCE
+> Task :expo-sqlite:generateDebugAssets UP-TO-DATE
+> Task :expo-sqlite:packageDebugAssets UP-TO-DATE
+> Task :expo-system-ui:mergeDebugShaders UP-TO-DATE
+> Task :expo-system-ui:compileDebugShaders NO-SOURCE
+> Task :expo-system-ui:generateDebugAssets UP-TO-DATE
+> Task :expo-system-ui:packageDebugAssets UP-TO-DATE
+> Task :react-native-async-storage_async-storage:mergeDebugShaders UP-TO-DATE
+> Task :react-native-async-storage_async-storage:compileDebugShaders NO-SOURCE
+> Task :react-native-async-storage_async-storage:generateDebugAssets UP-TO-DATE
+> Task :react-native-async-storage_async-storage:packageDebugAssets UP-TO-DATE
+> Task :react-native-community_netinfo:mergeDebugShaders UP-TO-DATE
+> Task :react-native-community_netinfo:compileDebugShaders NO-SOURCE
+> Task :react-native-community_netinfo:generateDebugAssets UP-TO-DATE
+> Task :react-native-community_netinfo:packageDebugAssets UP-TO-DATE
+> Task :react-native-picker_picker:mergeDebugShaders UP-TO-DATE
+> Task :react-native-picker_picker:compileDebugShaders NO-SOURCE
+> Task :react-native-picker_picker:generateDebugAssets UP-TO-DATE
+> Task :react-native-picker_picker:packageDebugAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugShaders UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugShaders NO-SOURCE
+> Task :react-native-safe-area-context:generateDebugAssets UP-TO-DATE
+> Task :react-native-safe-area-context:packageDebugAssets UP-TO-DATE
+> Task :react-native-screens:mergeDebugShaders UP-TO-DATE
+> Task :react-native-screens:compileDebugShaders NO-SOURCE
+> Task :react-native-screens:generateDebugAssets UP-TO-DATE
+> Task :react-native-screens:packageDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :react-native-async-storage_async-storage:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :react-native-community_netinfo:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :react-native-picker_picker:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-asset:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-constants:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-file-system:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-font:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-keep-awake:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-modules-core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-sqlite:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-system-ui:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :expo:processDebugJavaRes UP-TO-DATE
+> Task :expo-asset:processDebugJavaRes UP-TO-DATE
+> Task :expo-constants:processDebugJavaRes UP-TO-DATE
+> Task :expo-file-system:processDebugJavaRes UP-TO-DATE
+> Task :expo-font:processDebugJavaRes UP-TO-DATE
+> Task :expo-keep-awake:processDebugJavaRes UP-TO-DATE
+> Task :expo-modules-core:processDebugJavaRes UP-TO-DATE
+> Task :expo-sqlite:processDebugJavaRes UP-TO-DATE
+> Task :expo-system-ui:processDebugJavaRes UP-TO-DATE
+> Task :react-native-async-storage_async-storage:processDebugJavaRes NO-SOURCE
+> Task :react-native-community_netinfo:processDebugJavaRes NO-SOURCE
+> Task :react-native-picker_picker:processDebugJavaRes NO-SOURCE
+> Task :react-native-safe-area-context:processDebugJavaRes UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo:mergeDebugNativeLibs NO-SOURCE
+> Task :expo:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-asset:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-asset:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-asset:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-constants:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-constants:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-constants:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-file-system:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-file-system:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-file-system:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-font:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-font:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-font:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-keep-awake:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-keep-awake:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-keep-awake:copyDebugJniLibsProjectOnly UP-TO-DATE
+
+> Task :expo-modules-core:configureCMakeDebug[x86]
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+> Task :expo-modules-core:buildCMakeDebug[x86]
+> Task :expo-modules-core:configureCMakeDebug[x86_64]
+> Task :expo-modules-core:buildCMakeDebug[x86_64]
+> Task :expo-modules-core:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-modules-core:mergeDebugNativeLibs UP-TO-DATE
+> Task :expo-modules-core:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :expo-sqlite:createNativeDepsDirectories UP-TO-DATE
+> Task :expo-sqlite:mergeDebugJniLibFolders UP-TO-DATE
+
+> Task :expo-sqlite:downloadSQLite UP-TO-DATE
+Download https://www.sqlite.org/2024/sqlite-amalgamation-3450300.zip
+
+> Task :expo-sqlite:prepareSQLite UP-TO-DATE
+> Task :expo-sqlite:configureCMakeDebug[x86]
+> Task :expo-sqlite:buildCMakeDebug[x86]
+> Task :expo-sqlite:configureCMakeDebug[x86_64]
+> Task :react-native-screens:compileDebugKotlin
+> Task :expo-sqlite:buildCMakeDebug[x86_64]
+> Task :expo-system-ui:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-system-ui:mergeDebugNativeLibs NO-SOURCE
+> Task :expo-system-ui:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-async-storage_async-storage:mergeDebugJniLibFolders UP-TO-DATE
+> Task :react-native-async-storage_async-storage:mergeDebugNativeLibs NO-SOURCE
+> Task :react-native-async-storage_async-storage:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-community_netinfo:mergeDebugJniLibFolders UP-TO-DATE
+> Task :react-native-community_netinfo:mergeDebugNativeLibs NO-SOURCE
+> Task :react-native-community_netinfo:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-picker_picker:mergeDebugJniLibFolders UP-TO-DATE
+> Task :react-native-picker_picker:mergeDebugNativeLibs NO-SOURCE
+> Task :react-native-picker_picker:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugJniLibFolders UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugNativeLibs NO-SOURCE
+> Task :react-native-safe-area-context:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-screens:configureCMakeDebug[x86]
+> Task :expo-sqlite:mergeDebugNativeLibs
+> Task :react-native-screens:buildCMakeDebug[x86]
+> Task :expo-sqlite:copyDebugJniLibsProjectOnly
+
+> Task :react-native-screens:configureCMakeDebug[x86_64]
+C/C++: CMake Warning:
+C/C++:   Manually-specified variables were not used by the project:
+C/C++:     ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES
+
+> Task :react-native-screens:buildCMakeDebug[x86_64]
+> Task :react-native-screens:mergeDebugJniLibFolders
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :react-native-screens:mergeDebugNativeLibs
+> Task :react-native-screens:copyDebugJniLibsProjectOnly
+> Task :app:mergeDebugNativeLibs
+> Task :app:stripDebugDebugSymbols
+
+> Task :react-native-screens:compileDebugKotlin
+w: Flag is not supported by this version of the compiler: -Xno-source-retention-assertions
+e: Supertypes of the following classes cannot be resolved. Please make sure you have the required dependencies in the classpath:
+    class com.facebook.react.viewmanagers.RNSScreenManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenContainerManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenContentWrapperManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenFooterManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenStackHeaderConfigManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenStackHeaderSubviewManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSScreenStackManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSSearchBarManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSStackHostManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSStackScreenManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSTabsHostManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSTabsScreenManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+    class com.facebook.react.viewmanagers.RNSSafeAreaViewManagerInterface, unresolved supertypes: ViewManagerWithGeneratedInterface
+Adding -Xextended-compiler-checks argument might provide additional information.
+
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ModalScreenViewManager.kt:5:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ModalScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/PointerEventsBoxNoneImpl.kt:6:10 Class 'PointerEventsBoxNoneImpl' is not abstract and does not implement abstract member public abstract fun getPointerEvents(): PointerEvents! defined in com.facebook.react.uimanager.ReactPointerEventsView
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/PointerEventsBoxNoneImpl.kt:10:5 'pointerEvents' overrides nothing
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:13:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContainerViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:20:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContainerViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:20:99 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContainerViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:23:82 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContainerViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContentWrapperManager.kt:10:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContentWrapperManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContentWrapperManager.kt:14:110 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContentWrapperManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContentWrapperManager.kt:24:77 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenContentWrapperManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenFooterManager.kt:10:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenFooterManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenFooterManager.kt:14:94 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenFooterManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenFooterManager.kt:20:69 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenFooterManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:22:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:29:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:29:123 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:60:16 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:90:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:165:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:221:90 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:236:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:243:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:250:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:257:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:264:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:271:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:278:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:285:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:292:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:299:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:306:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:313:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:320:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:327:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:334:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:341:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:348:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderSubviewManager.kt:15:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderSubviewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderSubviewManager.kt:22:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderSubviewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderSubviewManager.kt:22:122 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderSubviewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderSubviewManager.kt:68:16 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderSubviewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderSubviewManager.kt:71:91 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackHeaderSubviewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:14:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:21:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:21:87 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:43:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:53:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:69:78 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenStackViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:28:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:35:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:35:72 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:46:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:59:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:72:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:79:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:93:16 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:98:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:205:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:221:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:237:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:245:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:448:73 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.ScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:19:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:26:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:26:81 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:29:80 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:36:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:196:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:203:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:210:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:217:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:224:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:231:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:238:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.SearchBarManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingViewPointerEvents.kt:6:10 Class 'DimmingViewPointerEventsImpl' is not abstract and does not implement abstract member public abstract fun getPointerEvents(): PointerEvents! defined in com.facebook.react.uimanager.ReactPointerEventsView
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingViewPointerEvents.kt:9:5 'pointerEvents' overrides nothing
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingViewPointerEvents.kt:13:10 Class 'DimmingViewPointerEventsProxy' is not abstract and does not implement abstract member public abstract fun getPointerEvents(): PointerEvents! defined in com.facebook.react.uimanager.ReactPointerEventsView
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingViewPointerEvents.kt:16:5 'pointerEvents' overrides nothing
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/SheetDelegate.kt:406:24 'if' must have both main and 'else' branches if used as an expression
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/host/StackHostViewManager.kt:12:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.host.StackHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/host/StackHostViewManager.kt:16:121 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.host.StackHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/host/StackHostViewManager.kt:20:34 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.host.StackHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/screen/StackScreenViewManager.kt:18:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/screen/StackScreenViewManager.kt:22:129 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/screen/StackScreenViewManager.kt:26:34 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/stack/screen/StackScreenViewManager.kt:34:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsHostViewManager.kt:14:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsHostViewManager.kt:18:117 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsHostViewManager.kt:24:75 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsHostViewManager.kt:63:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsScreenViewManager.kt:20:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsScreenViewManager.kt:24:125 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsScreenViewManager.kt:35:34 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsScreenViewManager.kt:49:9 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.gamma.tabs.TabsScreenViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaView.kt:110:13 Operator '!=' cannot be applied to 'Insets' and 'EdgeInsets'
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaViewManager.kt:19:1 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.safearea.SafeAreaViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaViewManager.kt:23:129 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.safearea.SafeAreaViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaViewManager.kt:29:34 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.safearea.SafeAreaViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaViewManager.kt:67:16 Cannot access 'ViewManagerWithGeneratedInterface' which is a supertype of 'com.swmansion.rnscreens.safearea.SafeAreaViewManager'. Check your module classpath for missing or conflicting dependencies
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/utils/ViewBackgroundUtils.kt:3:37 Unresolved reference: BackgroundStyleApplicator
+e: file:///C:/Projects/rent-management/mobile-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/utils/ViewBackgroundUtils.kt:6:62 Unresolved reference: BackgroundStyleApplicator
+
+> Task :react-native-screens:compileDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':react-native-screens:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2m 57s
+339 actionable tasks: 38 executed, 301 up-to-date

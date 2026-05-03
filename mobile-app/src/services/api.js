@@ -9,11 +9,17 @@ import { Platform } from 'react-native';
 // For production: use environment variable or production URL
 let API_BASE_URL;
 
-if (__DEV__) {
+// Allow environment variable override in all environments
+const envApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || process.env.REACT_NATIVE_API_BASE_URL;
+if (envApiUrl) {
+  API_BASE_URL = envApiUrl;
+  console.log('Using environment API URL:', API_BASE_URL);
+} else if (__DEV__) {
   // Development mode
   if (Platform.OS === 'android') {
     // Android emulator uses 10.0.2.2 to connect to localhost on host machine
     API_BASE_URL = 'http://10.0.2.2:3001/api';
+    console.warn('Android emulator detected: using 10.0.2.2:3001. Make sure backend server is running on host machine.');
   } else if (Platform.OS === 'ios') {
     // iOS simulator can use localhost
     API_BASE_URL = 'http://localhost:3001/api';
@@ -22,10 +28,8 @@ if (__DEV__) {
     API_BASE_URL = 'http://localhost:3001/api';
   }
 } else {
-  // Production mode - use environment variable or production URL
-  API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ||
-                 process.env.REACT_NATIVE_API_BASE_URL ||
-                 'https://monkfish-app-a3cq3.ondigitalocean.app/api';
+  // Production mode - default production URL
+  API_BASE_URL = 'https://monkfish-app-a3cq3.ondigitalocean.app/api';
 }
 
 console.log('API Base URL:', API_BASE_URL, 'Platform:', Platform.OS);
@@ -37,6 +41,26 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add response interceptor for better error logging
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.response) {
+      // Network error or timeout
+      console.error('Network error details:', {
+        message: error.message,
+        code: error.code,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        platform: Platform.OS,
+      });
+      console.warn('Check if backend server is running at', API_BASE_URL);
+      console.warn('For Android emulator, ensure server is accessible via 10.0.2.2:3001');
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Authentication API
 export const authApi = {

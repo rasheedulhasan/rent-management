@@ -152,6 +152,48 @@ The app expects a backend API with the following endpoints:
 
 Configure the API base URL in `src/services/api.js`.
 
+## Troubleshooting Common Issues
+
+### Login Fails with "Network Error" on Android Emulator
+
+**Symptoms:**
+- `LOG  API Base URL: http://10.0.2.2:3001/api Platform: android`
+- `ERROR  Error during login: [AxiosError: Network Error]`
+- `ERROR  Login error: [TypeError: Cannot read property 'handleApiError' of undefined]`
+
+**Causes and Solutions:**
+
+1. **Backend server not running**
+   - Ensure the backend server is started: `npm run dev` in the root directory
+   - Verify server is listening on port 3001: check terminal output for "Server running on port 3001"
+
+2. **Windows Firewall blocking connections**
+   - Allow Node.js through Windows Defender Firewall
+   - Add an inbound rule for port 3001 (TCP)
+   - Or temporarily disable firewall for testing
+
+3. **Android emulator network configuration**
+   - Android emulator uses `10.0.2.2` to access host's localhost
+   - Verify the server is binding to all interfaces (`0.0.0.0`) not just `localhost`
+   - Check network security config allows cleartext traffic to `10.0.2.2` (already configured)
+
+4. **Error handler import issue** (fixed)
+   - The error "Cannot read property 'handleApiError' of undefined" was due to incorrect import in `authService.js`
+   - This has been fixed in the latest code
+
+5. **Testing connectivity**
+   - From host machine, test: `curl http://localhost:3001/health`
+   - From Android emulator browser, navigate to `http://10.0.2.2:3001/health`
+
+6. **Environment variable override**
+   - You can override API URL via `EXPO_PUBLIC_API_BASE_URL` environment variable
+   - Example: `EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:3001/api` (use your computer's IP for physical device testing)
+
+### Additional Debug Steps
+- Check console logs for "API Base URL" to confirm correct URL
+- Enable network debugging in Chrome DevTools for Android emulator
+- Verify the backend CORS configuration allows requests from the app
+
 ## License
 
 Proprietary - Rent Management System

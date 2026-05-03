@@ -7,17 +7,23 @@ import {
   StatusBar,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import NetworkStatusBanner from './src/components/NetworkStatusBanner';
 import SyncStatus from './src/components/SyncStatus';
 import CollectionForm from './src/components/CollectionForm';
 import OfflineTest from './src/components/OfflineTest';
 import LoginScreen from './src/components/LoginScreen';
+import NewTenantBookingScreen from './src/components/NewTenantBookingScreen';
+import AdvancePaymentScreen from './src/components/AdvancePaymentScreen';
 import { NetworkProvider } from './src/services/network';
 import { SyncProvider } from './src/services/syncService';
 import { OfflineStoreProvider } from './src/store/offlineStore';
 import AuthService from './src/services/authService';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   const [showTestScreen, setShowTestScreen] = useState(false);
@@ -56,7 +62,8 @@ export default function App() {
     setUser(null);
   };
 
-  const MainApp = () => (
+  // Home Screen Component (Main App)
+  const HomeScreen = ({ navigation }) => (
     <ScrollView style={styles.content}>
       <View style={styles.header}>
         <View style={styles.userHeader}>
@@ -79,6 +86,24 @@ export default function App() {
       </View>
       <SyncStatus />
       <CollectionForm />
+      
+      {/* New Navigation Buttons */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tenant Management</Text>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate('NewTenantBooking')}
+        >
+          <Text style={styles.navButtonText}>➕ New Tenant Booking</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate('AdvancePayment')}
+        >
+          <Text style={styles.navButtonText}>💰 Record Advance Payment</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Collections</Text>
         <Text style={styles.placeholder}>No collections yet</Text>
@@ -107,6 +132,7 @@ export default function App() {
     </View>
   );
 
+  // Loading screen
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -122,10 +148,12 @@ export default function App() {
     );
   }
 
+  // Not authenticated - show login screen
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // Authenticated - show navigation with providers
   return (
     <OfflineStoreProvider>
       <NetworkProvider>
@@ -133,7 +161,21 @@ export default function App() {
           <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <NetworkStatusBanner />
-            {showTestScreen ? <TestScreen /> : <MainApp />}
+            {showTestScreen ? (
+              <TestScreen />
+            ) : (
+              <NavigationContainer>
+                <Stack.Navigator
+                  screenOptions={{
+                    headerShown: false,
+                  }}
+                >
+                  <Stack.Screen name="Home" component={HomeScreen} />
+                  <Stack.Screen name="NewTenantBooking" component={NewTenantBookingScreen} />
+                  <Stack.Screen name="AdvancePayment" component={AdvancePaymentScreen} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            )}
           </SafeAreaView>
         </SyncProvider>
       </NetworkProvider>
@@ -202,6 +244,23 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#FFF',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  navButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  navButtonText: {
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '600',
   },
   section: {

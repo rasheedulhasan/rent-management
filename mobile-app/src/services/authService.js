@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from './api';
-import { errorHandler } from '../utils/errorHandler';
+import ErrorHandler from '../utils/errorHandler';
 
 const AUTH_STORAGE_KEY = '@rent_management_auth';
 const USER_STORAGE_KEY = '@rent_management_user';
@@ -63,7 +63,7 @@ class AuthService {
       }
     } catch (error) {
       console.error('Login error:', error);
-      const errorInfo = errorHandler.handleApiError(error, 'Login');
+      const errorInfo = ErrorHandler.handleApiError(error, 'Login');
       return {
         success: false,
         error: errorInfo.userMessage,

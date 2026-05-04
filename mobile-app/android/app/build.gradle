@@ -109,19 +109,6 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
-        freeCompilerArgs += [
-            '-Xjvm-default=all',
-            '-Xexplicit-api=strict'
-        ]
-    }
-
     namespace 'com.rentmanagement.mobile'
     defaultConfig {
         applicationId 'com.rentmanagement.mobile'
@@ -155,11 +142,6 @@ android {
     packagingOptions {
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
-        }
-        // Fix ELF alignment and APK compatibility issues
-        resources {
-            excludes += ['**/libc++_shared.so', '**/libfbjni.so', '**/libjsc.so']
-            pickFirsts += ['**/libc++_shared.so', '**/libfbjni.so', '**/libjsc.so']
         }
     }
 }

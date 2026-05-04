@@ -4,30 +4,21 @@ buildscript {
     ext {
         buildToolsVersion = findProperty('android.buildToolsVersion') ?: '34.0.0'
         minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
-        compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
+        compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '34')
         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
-        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.0'
+        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.23'
 
-        ndkVersion = "25.1.8937393"
+        ndkVersion = "26.1.10909125"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath('com.android.tools.build:gradle:8.6.0')
+        classpath('com.android.tools.build:gradle')
         classpath('com.facebook.react:react-native-gradle-plugin')
         classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
     }
-}
-
-ext {
-    buildToolsVersion = findProperty('android.buildToolsVersion') ?: '34.0.0'
-    minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
-    compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
-    targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
-    kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.0'
-    ndkVersion = "25.1.8937393"
 }
 
 apply plugin: "com.facebook.react.rootproject"
@@ -46,28 +37,5 @@ allprojects {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
-    }
-    
-    configurations.all {
-        resolutionStrategy {
-            // Force lower versions of androidx libraries to be compatible with AGP 8.6.0
-            // Use versions that are actually available in Google's Maven repository
-            force 'androidx.core:core:1.10.0'
-            force 'androidx.core:core-ktx:1.10.0'
-            force 'androidx.transition:transition:1.4.1'
-            force 'androidx.transition:transition-ktx:1.4.1'
-        }
-    }
-    
-    // Add Kotlin compiler options to suppress stricter null checks
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            freeCompilerArgs += [
-                "-Xno-call-assertions",
-                "-Xno-receiver-assertions",
-                "-Xno-param-assertions",
-                "-Xno-source-retention-assertions"
-            ]
-        }
     }
 }

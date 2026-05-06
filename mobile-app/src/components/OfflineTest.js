@@ -15,18 +15,19 @@ import ErrorHandler from '../utils/errorHandler';
 
 const OfflineTest = () => {
   const { isOnline, connectionType } = useNetwork();
-  const { 
-    getPendingCollections, 
-    getCachedTenants, 
+  const {
+    getPendingCollections,
+    getCachedTenants,
     clearAllData,
-    getPendingCount 
+    getPendingCount,
+    addPendingCollection
   } = useOfflineStore();
-  const { 
-    manualSync, 
-    getSyncStatus, 
+  const {
+    manualSync,
+    getSyncStatus,
     retryFailedCollections,
     isSyncing,
-    syncStats 
+    syncStats
   } = useSync();
   
   const [testResults, setTestResults] = useState({});
@@ -80,13 +81,11 @@ const OfflineTest = () => {
               collectedAt: new Date().toISOString(),
             };
             
-            const { addPendingCollection } = useOfflineStore();
-            // Note: We can't call hooks conditionally, so we'll skip this for now
-            // In a real test, you would have the hook available
+            await addPendingCollection(testData);
             
             results.offlineStorage = {
               passed: true,
-              message: 'Offline storage system is available',
+              message: 'Offline storage system is working. Test collection saved.',
               timestamp: new Date().toISOString(),
             };
           } catch (error) {

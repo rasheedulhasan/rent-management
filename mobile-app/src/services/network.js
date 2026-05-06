@@ -1,5 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
-import { useEffect, useState, createContext, useContext, useCallback, useMemo } from 'react';
+import { useEffect, useState, createContext, useContext, useCallback, useMemo, useRef } from 'react';
 
 // Create context for network status
 const NetworkContext = createContext();
@@ -8,7 +8,7 @@ export const NetworkProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(true);
   const [isInternetReachable, setIsInternetReachable] = useState(true);
   const [connectionType, setConnectionType] = useState('unknown');
-  const [networkListeners, setNetworkListeners] = useState([]);
+  const networkListenersRef = useRef([]);
 
   useEffect(() => {
     // Subscribe to network state updates
@@ -23,7 +23,7 @@ export const NetworkProvider = ({ children }) => {
       
       // Notify all listeners when network status changes
       if (connected && reachable) {
-        networkListeners.forEach(listener => {
+        networkListenersRef.current.forEach(listener => {
           if (typeof listener === 'function') {
             listener(true);
           }
@@ -41,19 +41,19 @@ export const NetworkProvider = ({ children }) => {
     return () => {
       unsubscribe();
     };
-  }, [networkListeners]);
+  }, []); // Empty deps - listeners ref doesn't need to be in deps
 
   const addNetworkListener = useCallback((listener) => {
-    setNetworkListeners(prev => [...prev, listener]);
+    networkListenersRef.current = [...networkListenersRef.current, listener];
     
     // Return cleanup function
     return () => {
-      setNetworkListeners(prev => prev.filter(l => l !== listener));
+      networkListenersRef.current = networkListenersRef.current.filter(l => l !== listener);
     };
   }, []);
 
   const removeNetworkListener = useCallback((listener) => {
-    setNetworkListeners(prev => prev.filter(l => l !== listener));
+    networkListenersRef.current = networkListenersRef.current.filter(l => l !== listener);
   }, []);
 
   const value = useMemo(() => ({

@@ -36,6 +36,7 @@ export const initDatabase = () => {
           notes TEXT,
           collectedAt TEXT NOT NULL,
           syncStatus TEXT NOT NULL DEFAULT 'pending',
+          errorMessage TEXT,
           createdAt TEXT DEFAULT (datetime('now')),
           lastRetryAt TEXT,
           retryCount INTEGER DEFAULT 0
@@ -43,6 +44,13 @@ export const initDatabase = () => {
         [],
         () => {
           console.log('Pending collections table created');
+          // Migration: add errorMessage column if it doesn't exist (for existing DBs)
+          tx.executeSql(
+            `ALTER TABLE pending_collections ADD COLUMN errorMessage TEXT`,
+            [],
+            () => console.log('Migration: added errorMessage column'),
+            () => {} // Column already exists - expected on fresh installs
+          );
         },
         (_, error) => {
           console.error('Error creating pending collections table:', error);
@@ -178,7 +186,15 @@ export const updateCollectionStatus = (localId, status, errorMessage = null) => 
         const params = [status, now];
         
         if (status === 'failed' && errorMessage) {
-          query += `, retryCount = retryCount + 1`;
+          query += `, retryCount = retryCount + 1, errorMessage = ?`;
+          params.push(errorMessage);
+        } else if (status === 'synced') {
+          // Clear error message when successfully synced
+          query += `, errorMessage = NULL`;
+        } else if (errorMessage) {
+          // Store error message for any status update that includes one
+          query += `, errorMessage = ?`;
+          params.push(errorMessage);
         }
         
         query += ` WHERE localId = ?`;

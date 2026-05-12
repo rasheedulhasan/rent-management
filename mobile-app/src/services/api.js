@@ -156,4 +156,69 @@ export const rentCollectionsApi = {
   },
 };
 
+// Rooms API
+export const roomsApi = {
+  // Get all rooms with building name + current tenant populated
+  getRooms: async (params = {}) => {
+    try {
+      const response = await api.get('/rooms/populated', { params });
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch rooms');
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      throw error;
+    }
+  },
+
+  // Get rooms by building with populated data
+  getRoomsByBuilding: async (buildingId, status = null) => {
+    try {
+      const params = {};
+      if (status) params.status = status;
+      const response = await api.get(`/rooms/building/${buildingId}/populated`, { params });
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch rooms');
+      }
+    } catch (error) {
+      console.error('Error fetching rooms by building:', error);
+      throw error;
+    }
+  },
+
+  // Get single room with tenant info
+  getRoomWithTenant: async (roomId) => {
+    try {
+      const response = await api.get(`/rooms/${roomId}/with-tenant`);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch room');
+      }
+    } catch (error) {
+      console.error('Error fetching room with tenant:', error);
+      throw error;
+    }
+  },
+
+  // Get single room (raw)
+  getRoom: async (roomId) => {
+    try {
+      const response = await api.get(`/rooms/${roomId}`);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch room');
+      }
+    } catch (error) {
+      console.error('Error fetching room:', error);
+      throw error;
+    }
+  },
+};
+
 export default api;

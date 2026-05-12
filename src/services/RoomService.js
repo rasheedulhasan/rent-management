@@ -1,5 +1,5 @@
 const BaseService = require('./BaseService');
-const { ROOMS_COLLECTION_ID, Query } = require('../config/appwrite');
+const { ROOMS_COLLECTION_ID, BUILDINGS_COLLECTION_ID, TENANTS_COLLECTION_ID, Query, databases, DATABASE_ID } = require('../config/appwrite');
 
 class RoomService extends BaseService {
     constructor() {
@@ -67,22 +67,150 @@ class RoomService extends BaseService {
         });
     }
 
+    /**
+     * Get room with current tenant info populated
+     */
     async getRoomWithTenant(roomId) {
         const roomResult = await this.getById(roomId);
         if (!roomResult.success) {
             return roomResult;
         }
 
-        // In a real implementation, you would fetch tenant data
-        // For now, return room data with placeholder tenant info
         const room = roomResult.data;
+        
+        // Fetch current active tenant for this room
+        let currentTenant = null;
+        try {
+            const tenantsResult = await databases.listDocuments(
+                DATABASE_ID,
+                TENANTS_COLLECTION_ID,
+                [
+                    Query.equal('room_id', roomId),
+                    Query.equal('status', 'active')
+                ]
+            );
+            if (tenantsResult.documents && tenantsResult.documents.length > 0) {
+                currentTenant = tenantsResult.documents[0];
+            }
+        } catch (error) {
+            console.error(`Error fetching tenant for room ${roomId}:`, error);
+        }
+
+        // Fetch building name
+        let buildingName = '';
+        try {
+            const buildingResult = await databases.getDocument(
+                DATABASE_ID,
+                BUILDINGS_COLLECTION_ID,
+                room.building_id
+            );
+            buildingName = buildingResult.name || '';
+        } catch (error) {
+            console.error(`Error fetching building for room ${roomId}:`, error);
+        }
+
         return {
             success: true,
             data: {
                 ...room,
-                current_tenant: null // Would be populated from tenant service
+                building_name: buildingName,
+                current_tenant: currentTenant
             }
         };
+    }
+
+    /**
+     * Get all rooms with populated building name and current tenant info.
+     * This is the primary endpoint for mobile app room listings.
+     */
+    async getAllRoomsPopulated(queries = [], limit = 25, offset = 0) {
+        const listResult = await this.list(queries, limit, offset);
+        if (!listResult.success) {
+            return listResult;
+        }
+
+        const rooms = listResult.data.documents;
+        const populatedRooms = await this._populateRooms(rooms);
+
+        return {
+            success: true,
+            data: {
+                documents: populatedRooms,
+                total: listResult.data.total
+            }
+        };
+    }
+
+    /**
+     * Get rooms by building with populated data
+     */
+    async getRoomsByBuildingPopulated(buildingId, status = null) {
+        const queries = [Query.equal('building_id', buildingId)];
+        if (status) {
+            queries.push(Query.equal('status', status));
+        }
+        return await this.getAllRoomsPopulated(queries, 100, 0);
+    }
+
+    /**
+     * Internal helper: populate building name + current tenant for an array of rooms
+     */
+    async _populateRooms(rooms) {
+        if (!rooms || rooms.length === 0) return [];
+
+        // Collect unique building IDs
+        const buildingIds = [...new Set(rooms.map(r => r.building_id))];
+
+        // Fetch all referenced buildings in one batch
+        const buildingMap = {};
+        try {
+            for (const bId of buildingIds) {
+                try {
+                    const building = await databases.getDocument(
+                        DATABASE_ID,
+                        BUILDINGS_COLLECTION_ID,
+                        bId
+                    );
+                    buildingMap[bId] = building.name || '';
+                } catch (e) {
+                    buildingMap[bId] = '';
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching buildings for room population:', error);
+        }
+
+        // Fetch active tenants for all rooms in one batch
+        const roomIds = rooms.map(r => r.$id);
+        const tenantMap = {};
+        try {
+            for (const roomId of roomIds) {
+                try {
+                    const tenantsResult = await databases.listDocuments(
+                        DATABASE_ID,
+                        TENANTS_COLLECTION_ID,
+                        [
+                            Query.equal('room_id', roomId),
+                            Query.equal('status', 'active')
+                        ]
+                    );
+                    if (tenantsResult.documents && tenantsResult.documents.length > 0) {
+                        tenantMap[roomId] = tenantsResult.documents[0];
+                    }
+                } catch (e) {
+                    // No tenant found for this room
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching tenants for room population:', error);
+        }
+
+        // Merge data
+        return rooms.map(room => ({
+            ...room,
+            building_name: buildingMap[room.building_id] || '',
+            current_tenant: tenantMap[room.$id] || null
+        }));
     }
 
     async searchRooms(buildingId = null, floor = null, minRent = null, maxRent = null) {

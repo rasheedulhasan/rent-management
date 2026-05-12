@@ -150,7 +150,7 @@ Search buildings by name. `query` (string, required).
 ## 3. Rooms
 
 ### GET `/api/rooms`
-List all rooms with optional filters.
+List all rooms with optional filters (raw data, no populated references).
 
 **Query Parameters:**
 | Param | Type | Required | Description |
@@ -170,10 +170,92 @@ List all rooms with optional filters.
 }
 ```
 
+### GET `/api/rooms/populated` ⭐ *(Mobile App Primary)*
+Get all rooms with **building name** and **current tenant** populated. This is the recommended endpoint for mobile app room listings.
+
+**Query Parameters:**
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `building_id` | string | No | Filter by building |
+| `status` | string | No | `vacant` / `occupied` / `under_maintenance` |
+| `floor` | number | No | Filter by floor number |
+| `limit` | number | No | Default: 25 |
+| `offset` | number | No | Default: 0 |
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "$id": "room_id_123",
+      "building_id": "building_id_456",
+      "room_number": "101",
+      "floor": 1,
+      "type": "apartment",
+      "monthly_rent": 5000,
+      "size": "1 BHK",
+      "amenities": "AC, WiFi",
+      "status": "occupied",
+      "building_name": "Al Noor Building",
+      "current_tenant": {
+        "$id": "tenant_id_789",
+        "full_name": "John Smith",
+        "phone_number": "+971501234567",
+        "email": "john@example.com",
+        "monthly_rent": 5000,
+        "check_in_date": "2024-01-15T10:30:00.000+00:00",
+        "status": "active"
+      }
+    }
+  ],
+  "total": 25
+}
+```
+
+> **Note:** Rooms without an active tenant will have `current_tenant: null`.
+
+### GET `/api/rooms/building/:buildingId/populated`
+Get rooms in a specific building with building name and current tenant populated.
+
+**Path Parameters:** `buildingId` (string, required)
+
+**Query Parameters:** `status` (string, optional)
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": [ "...roomObjectsWithBuildingAndTenant" ],
+  "total": 12
+}
+```
+
 ### GET `/api/rooms/:id`
-Get a single room by ID. `id` (string, required).
+Get a single room by ID (raw data). `id` (string, required).
 
 **Success Response (200):** `{ "success": true, "data": { ...roomObject } }`
+
+### GET `/api/rooms/:id/with-tenant`
+Get a single room with building name and current tenant populated. `id` (string, required).
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "$id": "room_id_123",
+    "building_id": "building_id_456",
+    "room_number": "101",
+    "floor": 1,
+    "type": "apartment",
+    "monthly_rent": 5000,
+    "status": "occupied",
+    "building_name": "Al Noor Building",
+    "current_tenant": { "...tenantObject" }
+  }
+}
+```
 
 ### POST `/api/rooms`
 Create a new room.
@@ -208,7 +290,7 @@ Update a room. `id` (string, required). Body: partial room fields.
 Delete a room. `id` (string, required).
 
 ### GET `/api/rooms/building/:buildingId`
-Get all rooms in a specific building.
+Get all rooms in a specific building (raw data).
 
 **Path Parameters:** `buildingId` (string, required)
 
@@ -230,11 +312,6 @@ Update room status only. `id` (string, required).
 ```json
 { "status": "string (required) - 'vacant' / 'occupied' / 'under_maintenance'" }
 ```
-
-### GET `/api/rooms/:id/with-tenant`
-Get room details including current tenant info. `id` (string, required).
-
-**Success Response (200):** `{ "success": true, "data": { ...roomWithTenantObject } }`
 
 ### GET `/api/rooms/search/filter`
 Search/filter rooms by multiple criteria.
@@ -709,54 +786,56 @@ All API responses follow a consistent format:
 | 6 | DELETE | `/api/buildings/:id` | Delete building |
 | 7 | GET | `/api/buildings/:id/stats` | Building stats |
 | 8 | GET | `/api/buildings/search/:query` | Search buildings |
-| 9 | GET | `/api/rooms` | List rooms |
-| 10 | GET | `/api/rooms/:id` | Get room |
-| 11 | POST | `/api/rooms` | Create room |
-| 12 | PUT | `/api/rooms/:id` | Update room |
-| 13 | DELETE | `/api/rooms/:id` | Delete room |
-| 14 | GET | `/api/rooms/building/:buildingId` | Rooms by building |
-| 15 | PATCH | `/api/rooms/:id/status` | Update room status |
-| 16 | GET | `/api/rooms/:id/with-tenant` | Room with tenant |
-| 17 | GET | `/api/rooms/search/filter` | Search rooms |
-| 18 | GET | `/api/tenants` | List tenants |
-| 19 | GET | `/api/tenants/:id` | Get tenant |
-| 20 | POST | `/api/tenants` | Create tenant |
-| 21 | PUT | `/api/tenants/:id` | Update tenant |
-| 22 | DELETE | `/api/tenants/:id` | Delete tenant |
-| 23 | GET | `/api/tenants/room/:roomId` | Tenants by room |
-| 24 | PATCH | `/api/tenants/:id/status` | Update tenant status |
-| 25 | GET | `/api/tenants/:id/with-transactions` | Tenant with transactions |
-| 26 | GET | `/api/tenants/search/:query` | Search tenants |
-| 27 | GET | `/api/tenants/stats/active-count` | Active tenant count |
-| 28 | GET | `/api/transactions` | List transactions |
-| 29 | GET | `/api/transactions/:id` | Get transaction |
-| 30 | POST | `/api/transactions` | Create transaction |
-| 31 | PUT | `/api/transactions/:id` | Update transaction |
-| 32 | DELETE | `/api/transactions/:id` | Delete transaction |
-| 33 | PATCH | `/api/transactions/:id/status` | Update payment status |
-| 34 | GET | `/api/transactions/tenant/:tenantId` | Transactions by tenant |
-| 35 | GET | `/api/transactions/room/:roomId` | Transactions by room |
-| 36 | GET | `/api/transactions/collector/:userId` | Transactions by collector |
-| 37 | GET | `/api/transactions/period/:year/:month` | Transactions by period |
-| 38 | GET | `/api/transactions/search/:field/:query` | Search transactions |
-| 39 | GET | `/api/transactions/revenue/monthly/:year` | Monthly revenue |
-| 40 | GET | `/api/users` | List users |
-| 41 | GET | `/api/users/:id` | Get user |
-| 42 | POST | `/api/users` | Create user |
-| 43 | PUT | `/api/users/:id` | Update user |
-| 44 | DELETE | `/api/users/:id` | Delete user |
-| 45 | GET | `/api/users/username/:username` | User by username |
-| 46 | GET | `/api/users/email/:email` | User by email |
-| 47 | PATCH | `/api/users/:id/status` | Update user status |
-| 48 | GET | `/api/users/role/collectors` | List collectors |
-| 49 | GET | `/api/users/role/admins` | List admins |
-| 50 | GET | `/api/users/search/:query` | Search users |
-| 51 | GET | `/api/dashboard/stats` | Dashboard stats |
-| 52 | GET | `/api/dashboard/financial` | Financial overview |
-| 53 | GET | `/api/dashboard/properties` | Property overview |
-| 54 | GET | `/api/dashboard/tenants` | Tenant overview |
-| 55 | GET | `/api/dashboard/collection-performance` | Collection performance |
-| 56 | GET | `/health` | Health check |
+| 9 | GET | `/api/rooms` | List rooms (raw) |
+| 10 | **GET** | **`/api/rooms/populated`** | **List rooms with building + tenant ⭐** |
+| 11 | GET | `/api/rooms/:id` | Get room |
+| 12 | **GET** | **`/api/rooms/:id/with-tenant`** | **Get room with building + tenant** |
+| 13 | POST | `/api/rooms` | Create room |
+| 14 | PUT | `/api/rooms/:id` | Update room |
+| 15 | DELETE | `/api/rooms/:id` | Delete room |
+| 16 | GET | `/api/rooms/building/:buildingId` | Rooms by building (raw) |
+| 17 | **GET** | **`/api/rooms/building/:buildingId/populated`** | **Rooms by building with tenant ⭐** |
+| 18 | PATCH | `/api/rooms/:id/status` | Update room status |
+| 19 | GET | `/api/rooms/search/filter` | Search rooms |
+| 20 | GET | `/api/tenants` | List tenants |
+| 21 | GET | `/api/tenants/:id` | Get tenant |
+| 22 | POST | `/api/tenants` | Create tenant |
+| 23 | PUT | `/api/tenants/:id` | Update tenant |
+| 24 | DELETE | `/api/tenants/:id` | Delete tenant |
+| 25 | GET | `/api/tenants/room/:roomId` | Tenants by room |
+| 26 | PATCH | `/api/tenants/:id/status` | Update tenant status |
+| 27 | GET | `/api/tenants/:id/with-transactions` | Tenant with transactions |
+| 28 | GET | `/api/tenants/search/:query` | Search tenants |
+| 29 | GET | `/api/tenants/stats/active-count` | Active tenant count |
+| 30 | GET | `/api/transactions` | List transactions |
+| 31 | GET | `/api/transactions/:id` | Get transaction |
+| 32 | POST | `/api/transactions` | Create transaction |
+| 33 | PUT | `/api/transactions/:id` | Update transaction |
+| 34 | DELETE | `/api/transactions/:id` | Delete transaction |
+| 35 | PATCH | `/api/transactions/:id/status` | Update payment status |
+| 36 | GET | `/api/transactions/tenant/:tenantId` | Transactions by tenant |
+| 37 | GET | `/api/transactions/room/:roomId` | Transactions by room |
+| 38 | GET | `/api/transactions/collector/:userId` | Transactions by collector |
+| 39 | GET | `/api/transactions/period/:year/:month` | Transactions by period |
+| 40 | GET | `/api/transactions/search/:field/:query` | Search transactions |
+| 41 | GET | `/api/transactions/revenue/monthly/:year` | Monthly revenue |
+| 42 | GET | `/api/users` | List users |
+| 43 | GET | `/api/users/:id` | Get user |
+| 44 | POST | `/api/users` | Create user |
+| 45 | PUT | `/api/users/:id` | Update user |
+| 46 | DELETE | `/api/users/:id` | Delete user |
+| 47 | GET | `/api/users/username/:username` | User by username |
+| 48 | GET | `/api/users/email/:email` | User by email |
+| 49 | PATCH | `/api/users/:id/status` | Update user status |
+| 50 | GET | `/api/users/role/collectors` | List collectors |
+| 51 | GET | `/api/users/role/admins` | List admins |
+| 52 | GET | `/api/users/search/:query` | Search users |
+| 53 | GET | `/api/dashboard/stats` | Dashboard stats |
+| 54 | GET | `/api/dashboard/financial` | Financial overview |
+| 55 | GET | `/api/dashboard/properties` | Property overview |
+| 56 | GET | `/api/dashboard/tenants` | Tenant overview |
+| 57 | GET | `/api/dashboard/collection-performance` | Collection performance |
+| 58 | GET | `/health` | Health check |
 
 ---
 

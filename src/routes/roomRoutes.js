@@ -1,23 +1,138 @@
 const express = require('express');
 const router = express.Router();
 const roomService = require('../services/RoomService');
+const { Query } = require('../config/appwrite');
 
-// Get all rooms
+// ============================================================
+// MOBILE-FRIENDLY POPULATED ENDPOINTS (with building + tenant)
+// MUST be defined BEFORE /:id routes to avoid route conflicts
+// ============================================================
+
+// GET /api/rooms/populated - Get all rooms with building name + current tenant
+router.get('/populated', async (req, res) => {
+    try {
+        const { building_id, status, floor, limit = 25, offset = 0 } = req.query;
+        const queries = [];
+        
+        if (building_id) {
+            queries.push(Query.equal('building_id', building_id));
+        }
+        
+        if (status) {
+            queries.push(Query.equal('status', status));
+        }
+        
+        if (floor) {
+            queries.push(Query.equal('floor', parseInt(floor)));
+        }
+        
+        const result = await roomService.getAllRoomsPopulated(
+            queries,
+            parseInt(limit),
+            parseInt(offset)
+        );
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data.documents,
+                total: result.data.total
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching populated rooms:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch rooms'
+        });
+    }
+});
+
+// GET /api/rooms/building/:buildingId/populated - Rooms by building with populated data
+router.get('/building/:buildingId/populated', async (req, res) => {
+    try {
+        const { buildingId } = req.params;
+        const { status } = req.query;
+        const result = await roomService.getRoomsByBuildingPopulated(buildingId, status);
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data.documents,
+                total: result.data.total
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching populated rooms by building:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch rooms'
+        });
+    }
+});
+
+// GET /api/rooms/search/filter - Search rooms
+router.get('/search/filter', async (req, res) => {
+    try {
+        const { building_id, floor, min_rent, max_rent } = req.query;
+        
+        const result = await roomService.searchRooms(
+            building_id,
+            floor ? parseInt(floor) : null,
+            min_rent ? parseFloat(min_rent) : null,
+            max_rent ? parseFloat(max_rent) : null
+        );
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data.documents,
+                total: result.data.total
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to search rooms'
+        });
+    }
+});
+
+// ============================================================
+// STANDARD CRUD ENDPOINTS
+// ============================================================
+
+// Get all rooms (raw)
 router.get('/', async (req, res) => {
     try {
         const { building_id, status, floor, limit = 25, offset = 0 } = req.query;
         const queries = [];
         
         if (building_id) {
-            queries.push(`equal("building_id", "${building_id}")`);
+            queries.push(Query.equal('building_id', building_id));
         }
         
         if (status) {
-            queries.push(`equal("status", "${status}")`);
+            queries.push(Query.equal('status', status));
         }
         
         if (floor) {
-            queries.push(`equal("floor", ${floor})`);
+            queries.push(Query.equal('floor', parseInt(floor)));
         }
         
         const result = await roomService.list(queries, parseInt(limit), parseInt(offset));
@@ -145,7 +260,7 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// Get rooms by building
+// Get rooms by building (raw)
 router.get('/building/:buildingId', async (req, res) => {
     try {
         const { buildingId } = req.params;
@@ -207,7 +322,7 @@ router.patch('/:id/status', async (req, res) => {
     }
 });
 
-// Get room with tenant info
+// Get room with tenant info (populated single room)
 router.get('/:id/with-tenant', async (req, res) => {
     try {
         const { id } = req.params;
@@ -228,38 +343,6 @@ router.get('/:id/with-tenant', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch room details'
-        });
-    }
-});
-
-// Search rooms
-router.get('/search/filter', async (req, res) => {
-    try {
-        const { building_id, floor, min_rent, max_rent } = req.query;
-        
-        const result = await roomService.searchRooms(
-            building_id,
-            floor ? parseInt(floor) : null,
-            min_rent ? parseFloat(min_rent) : null,
-            max_rent ? parseFloat(max_rent) : null
-        );
-        
-        if (result.success) {
-            res.status(200).json({
-                success: true,
-                data: result.data.documents,
-                total: result.data.total
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                error: result.error
-            });
-        }
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: 'Failed to search rooms'
         });
     }
 });

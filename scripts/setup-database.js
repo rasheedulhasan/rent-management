@@ -199,6 +199,7 @@ async function createUserAttributes() {
         { key: 'phone', type: 'string', size: 20, required: false },
         { key: 'role', type: 'string', size: 50, required: true, default: 'collector' },
         { key: 'status', type: 'string', size: 50, required: true, default: 'active' },
+        { key: 'password', type: 'string', size: 255, required: false },
         { key: 'permissions', type: 'string', size: 500, required: false }
     ];
 

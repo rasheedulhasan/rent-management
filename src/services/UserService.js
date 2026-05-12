@@ -1,5 +1,6 @@
 const BaseService = require('./BaseService');
 const { USERS_COLLECTION_ID, Query } = require('../config/appwrite');
+const bcrypt = require('bcryptjs');
 
 class UserService extends BaseService {
     constructor() {
@@ -20,6 +21,14 @@ class UserService extends BaseService {
             return { success: false, error: 'Username or email already exists' };
         }
 
+        // Hash password if provided, otherwise set default
+        let hashedPassword = '';
+        if (userData.password) {
+            hashedPassword = await bcrypt.hash(userData.password, 10);
+        } else {
+            hashedPassword = await bcrypt.hash('demo123', 10);
+        }
+
         const data = {
             username: userData.username,
             full_name: userData.full_name,
@@ -27,6 +36,7 @@ class UserService extends BaseService {
             phone: userData.phone || '',
             role: userData.role,
             status: userData.status || 'active',
+            password: hashedPassword,
             permissions: userData.permissions || JSON.stringify(['read', 'write'])
         };
 
@@ -115,8 +125,6 @@ class UserService extends BaseService {
     }
 
     async validateUserCredentials(username, password) {
-        // Note: In a real application, you would use proper authentication
-        // This is a simplified version for demonstration
         const userResult = await this.getUserByUsername(username);
         if (!userResult.success) {
             return { success: false, error: 'Invalid credentials' };
@@ -127,8 +135,23 @@ class UserService extends BaseService {
             return { success: false, error: 'User account is not active' };
         }
 
-        // In a real app, you would verify password hash here
-        // For demo purposes, we'll assume password validation happens elsewhere
+        // Appwrite returns [] for empty/unset string attributes
+        const storedPassword = user.password;
+        const hasPassword = storedPassword &&
+            !(Array.isArray(storedPassword) && storedPassword.length === 0) &&
+            typeof storedPassword === 'string' &&
+            storedPassword.length > 0;
+
+        if (!hasPassword) {
+            return { success: false, error: 'Invalid credentials' };
+        }
+
+        // Verify password against stored hash
+        const isPasswordValid = await bcrypt.compare(password, storedPassword);
+        if (!isPasswordValid) {
+            return { success: false, error: 'Invalid credentials' };
+        }
+
         return { success: true, data: user };
     }
 }

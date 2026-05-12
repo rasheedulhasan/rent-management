@@ -1,4 +1,5 @@
 const { Client, Databases, ID, Query } = require('node-appwrite');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // Initialize Appwrite client
@@ -13,6 +14,9 @@ const databases = new Databases(client);
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || 'rent_collection_db';
 const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID || 'users';
 
+// Default password for all seeded users
+const DEFAULT_PASSWORD = 'demo123';
+
 // Mock users data matching the requirements
 const mockUsers = [
     {
@@ -22,6 +26,7 @@ const mockUsers = [
         phone: '0500000001',
         role: 'collector',
         status: 'active',
+        password: DEFAULT_PASSWORD,
         permissions: 'collect,view'
     },
     {
@@ -31,6 +36,7 @@ const mockUsers = [
         phone: '0500000002',
         role: 'collector',
         status: 'active',
+        password: DEFAULT_PASSWORD,
         permissions: 'collect,view'
     },
     {
@@ -40,6 +46,7 @@ const mockUsers = [
         phone: '0500000003',
         role: 'collector',
         status: 'active',
+        password: DEFAULT_PASSWORD,
         permissions: 'collect,view'
     }
 ];
@@ -80,11 +87,16 @@ async function seedUsers() {
                     );
                     
                     if (existingUser.documents.length === 0) {
+                        // Hash password before storing
+                        const hashedPassword = await bcrypt.hash(userData.password, 10);
+                        const userToCreate = { ...userData, password: hashedPassword };
+                        delete userToCreate.password; // remove plain text
+                        
                         await databases.createDocument(
                             DATABASE_ID,
                             USERS_COLLECTION_ID,
                             ID.unique(),
-                            userData
+                            { ...userData, password: hashedPassword }
                         );
                         console.log(`Created user: ${userData.full_name} (${userData.email})`);
                     } else {

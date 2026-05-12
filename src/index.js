@@ -6,6 +6,7 @@ require('dotenv').config();
 const buildingRoutes = require('./routes/buildingRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const tenantRoutes = require('./routes/tenantRoutes');
+const tenantBookingRoutes = require('./tenant-booking/tenantBookingRoutes');
 const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
@@ -64,6 +65,7 @@ app.get('/health', (req, res) => {
 app.use('/api/buildings', buildingRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/tenants', tenantRoutes);
+app.use('/api/tenants', tenantBookingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);

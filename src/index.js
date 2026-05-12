@@ -14,6 +14,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // =====================
+// Feature Flags
+// =====================
+const ENABLE_PENDING_RENT_MODULE = process.env.ENABLE_PENDING_RENT_MODULE === 'true';
+
+// =====================
 // Middleware
 // =====================
 app.use(cors());
@@ -61,6 +66,17 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// =====================
+// Pending Rent Module (Isolated Add-on)
+// =====================
+if (ENABLE_PENDING_RENT_MODULE) {
+  const pendingRentRoutes = require('./routes/pendingRentRoutes');
+  app.use('/api/rent', pendingRentRoutes);
+  console.log('✓ Pending Rent Collection Module enabled (ENABLE_PENDING_RENT_MODULE=true)');
+} else {
+  console.log('○ Pending Rent Collection Module disabled (ENABLE_PENDING_RENT_MODULE not set or false)');
+}
 
 // =====================
 // 404 handler (LAST)

@@ -18,6 +18,7 @@ import OfflineTest from './src/components/OfflineTest';
 import LoginScreen from './src/components/LoginScreen';
 import NewTenantBookingScreen from './src/components/NewTenantBookingScreen';
 import AdvancePaymentScreen from './src/components/AdvancePaymentScreen';
+import PendingRentScreen from './src/components/PendingRentScreen';
 import { NetworkProvider } from './src/services/network';
 import { SyncProvider } from './src/services/syncService';
 import { OfflineStoreProvider } from './src/store/offlineStore';
@@ -105,6 +106,16 @@ export default function App() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Rent Collection</Text>
+        <TouchableOpacity
+          style={[styles.navButton, { backgroundColor: '#FF9500' }]}
+          onPress={() => navigation.navigate('PendingRent')}
+        >
+          <Text style={styles.navButtonText}>📋 Pending Rent Collection</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Collections</Text>
         <Text style={styles.placeholder}>No collections yet</Text>
       </View>
@@ -173,6 +184,7 @@ export default function App() {
                   <Stack.Screen name="Home" component={HomeScreen} />
                   <Stack.Screen name="NewTenantBooking" component={NewTenantBookingScreen} />
                   <Stack.Screen name="AdvancePayment" component={AdvancePaymentScreen} />
+                  <Stack.Screen name="PendingRent" component={PendingRentScreen} />
                 </Stack.Navigator>
               </NavigationContainer>
             )}

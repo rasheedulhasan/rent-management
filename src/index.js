@@ -69,13 +69,14 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // =====================
 // Pending Rent Module (Isolated Add-on)
+// Uses move-in-date based due day calculation.
 // =====================
 if (ENABLE_PENDING_RENT_MODULE) {
-  const pendingRentRoutes = require('./routes/pendingRentRoutes');
-  app.use('/api/rent', pendingRentRoutes);
-  console.log('✓ Pending Rent Collection Module enabled (ENABLE_PENDING_RENT_MODULE=true)');
+  const moveInDateRentRoutes = require('./routes/moveInDateRentRoutes');
+  app.use('/api/rent', moveInDateRentRoutes);
+  console.log('✓ Pending Rent Module enabled (move-in-date based due day calculation)');
 } else {
-  console.log('○ Pending Rent Collection Module disabled (ENABLE_PENDING_RENT_MODULE not set or false)');
+  console.log('○ Pending Rent Module disabled (ENABLE_PENDING_RENT_MODULE not set or false)');
 }
 
 // =====================

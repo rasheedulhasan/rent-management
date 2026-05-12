@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "data": {
+    "occupied_rooms": 10,
+    "active_tenants": 10
+  }
+}

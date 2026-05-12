@@ -1,5 +1,7 @@
 const BaseService = require('./BaseService');
 const { RENT_TRANSACTIONS_COLLECTION_ID, Query } = require('../config/appwrite');
+const TenantService = require('./TenantService');
+const RoomService = require('./RoomService');
 
 class RentTransactionService extends BaseService {
     constructor() {
@@ -214,6 +216,106 @@ class RentTransactionService extends BaseService {
         }
 
         return await this.list([Query.equal(field, searchTerm)]);
+    }
+
+    /**
+     * Get a list of pending rent transactions enriched with tenant and room details.
+     * Used by the dashboard's pending-rent endpoint.
+     */
+    async getPendingRentList() {
+        try {
+            const result = await this.list(
+                [Query.equal('payment_status', 'pending')],
+                100,
+                0,
+                'rent_due_date',
+                'ASC'
+            );
+
+            if (!result.success) {
+                return result;
+            }
+
+            const transactions = result.data.documents;
+            const now = new Date();
+
+            // Enrich each transaction with tenant name and room number
+            const enrichedTransactions = await Promise.all(
+                transactions.map(async (transaction) => {
+                    try {
+                        // Fetch tenant details
+                        const tenantResult = await TenantService.getById(transaction.tenant_id);
+                        const tenantName = tenantResult.success
+                            ? tenantResult.data.full_name
+                            : 'Unknown Tenant';
+
+                        // Fetch room details
+                        const roomResult = await RoomService.getById(transaction.room_id);
+                        const roomNumber = roomResult.success
+                            ? roomResult.data.room_number
+                            : 'N/A';
+
+                        // Calculate days overdue
+                        const dueDate = new Date(transaction.rent_due_date);
+                        const daysOverdue = Math.max(0, Math.floor((now - dueDate) / (1000 * 60 * 60 * 24)));
+
+                        return {
+                            id: transaction.$id,
+                            tenant_id: transaction.tenant_id,
+                            tenant_name: tenantName,
+                            room_id: transaction.room_id,
+                            room_number: roomNumber,
+                            amount: transaction.amount,
+                            monthly_rent: transaction.monthly_rent,
+                            payment_method: transaction.payment_method,
+                            payment_status: transaction.payment_status,
+                            rent_due_date: transaction.rent_due_date,
+                            period_month: transaction.period_month,
+                            period_year: transaction.period_year,
+                            pending_reason: transaction.pending_reason || '',
+                            remarks: transaction.remarks || '',
+                            days_overdue: daysOverdue,
+                            collected_by: transaction.collected_by
+                        };
+                    } catch (err) {
+                        console.error(`Error enriching transaction ${transaction.$id}:`, err.message);
+                        return {
+                            id: transaction.$id,
+                            tenant_id: transaction.tenant_id,
+                            tenant_name: 'Unknown Tenant',
+                            room_id: transaction.room_id,
+                            room_number: 'N/A',
+                            amount: transaction.amount,
+                            monthly_rent: transaction.monthly_rent,
+                            payment_method: transaction.payment_method,
+                            payment_status: transaction.payment_status,
+                            rent_due_date: transaction.rent_due_date,
+                            period_month: transaction.period_month,
+                            period_year: transaction.period_year,
+                            pending_reason: transaction.pending_reason || '',
+                            remarks: transaction.remarks || '',
+                            days_overdue: 0,
+                            collected_by: transaction.collected_by
+                        };
+                    }
+                })
+            );
+
+            // Calculate total pending amount
+            const totalPendingAmount = enrichedTransactions.reduce(
+                (sum, txn) => sum + txn.monthly_rent, 0
+            );
+
+            return {
+                success: true,
+                data: enrichedTransactions,
+                total: enrichedTransactions.length,
+                total_pending_amount: totalPendingAmount
+            };
+        } catch (error) {
+            console.error('Error getting pending rent list:', error);
+            return { success: false, error: error.message };
+        }
     }
 }
 

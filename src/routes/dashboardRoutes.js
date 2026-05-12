@@ -289,4 +289,31 @@ router.get('/collection-performance', async (req, res) => {
     }
 });
 
+// Get pending rent list with tenant and room details
+router.get('/pending-rent', async (req, res) => {
+    try {
+        const result = await transactionService.getPendingRentList();
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data,
+                total: result.total,
+                total_pending_amount: result.total_pending_amount
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching pending rent list:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch pending rent list'
+        });
+    }
+});
+
 module.exports = router;

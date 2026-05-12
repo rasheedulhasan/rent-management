@@ -182,8 +182,8 @@ class Validators {
         }
         
         // Payment method validation
-        if (data.payment_method && !['cash', 'online', 'bank_transfer'].includes(data.payment_method)) {
-            errors.push('payment_method must be "cash", "online", or "bank_transfer"');
+        if (data.payment_method && !['cash', 'online', 'bank_transfer', 'cheque'].includes(data.payment_method)) {
+            errors.push('payment_method must be "cash", "online", "bank_transfer", or "cheque"');
         }
         
         // Payment status validation

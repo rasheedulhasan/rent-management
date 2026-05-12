@@ -9,6 +9,7 @@ const tenantRoutes = require('./routes/tenantRoutes');
 const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const rentCollectionRoutes = require('./rent-collection/rentCollectionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,6 +67,12 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// =====================
+// Rent Collection API (Reusable — Mobile + Dashboard)
+// POST /api/rent/collect
+// =====================
+app.use('/api/rent', rentCollectionRoutes);
 
 // =====================
 // Pending Rent Module (Isolated Add-on)

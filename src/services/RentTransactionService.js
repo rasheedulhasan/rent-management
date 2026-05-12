@@ -33,7 +33,7 @@ class RentTransactionService extends BaseService {
         }
 
         // Validate payment method
-        const validMethods = ['cash', 'online', 'bank_transfer'];
+        const validMethods = ['cash', 'online', 'bank_transfer', 'cheque'];
         if (!validMethods.includes(transactionData.payment_method)) {
             return { success: false, error: 'Invalid payment method' };
         }

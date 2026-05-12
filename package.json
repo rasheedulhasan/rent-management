@@ -12,6 +12,7 @@
     "seed-rooms": "node seed-rooms.js",
     "seed-tenants": "node seed-mock-tenants.js",
     "seed-pending-rent": "node scripts/seed-pending-rent.js",
+    "seed-pending-rent-mock": "node scripts/seed-pending-rent-mock-data.js",
     "seed-dummy-data": "node scripts/seed-dummy-data.js",
     "test": "jest"
   },

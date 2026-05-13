@@ -1,0 +1,20 @@
+{
+    "name": "rent-payment-state-update",
+    "version": "1.0.0",
+    "description": "Appwrite Cloud Function: Atomic rent payment state update — flips pending transactions to paid when a collector records a payment.",
+    "main": "src/main.js",
+    "type": "commonjs",
+    "dependencies": {
+        "node-appwrite": "^13.0.0"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "appwrite",
+        "cloud-function",
+        "rent-collection",
+        "payment"
+    ],
+    "license": "MIT"
+}

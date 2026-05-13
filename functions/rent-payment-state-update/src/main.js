@@ -5,10 +5,19 @@
  *
  * PURPOSE:
  *   When a collector records a successful rent payment (creating a transaction
- *   with payment_status = "paid"), this function performs the atomic-like state
- *   update: it finds the matching "pending" transaction record for the same
- *   tenant + period and flips it to "paid", recording the actual amount and
- *   timestamp.
+ *   document in the 'rent_transactions' collection), this function performs an
+ *   atomic-like state update on the dedicated 'rent_ledger' collection.
+ *
+ *   The 'rent_ledger' collection is a time-based ledger that tracks each
+ *   tenant's monthly rent cycle. Each row represents one month of rent for one
+ *   tenant in one room. The ledger starts with status="pending" and is flipped
+ *   to "paid" when a matching transaction is recorded.
+ *
+ *   This decouples the audit trail (transactions) from the state machine
+ *   (ledger), allowing the mobile app to fast-query:
+ *     Query.equal("status", "pending")
+ *   and get only the items that still need payment — paid items automatically
+ *   drop off the "pending rent" list.
  *
  * EXECUTION FLOWS:
  *   Flow A — Event Webhook Trigger:
@@ -17,23 +26,34 @@
  *     from the event payload and processes it.
  *
  *   Flow B — Direct API Call (functions.createExecution()):
- *     Accepts a JSON payload with { tenantId, roomId, rentPeriodId, amountPaid,
- *     paymentMethod }. The function queries for the matching pending record and
- *     updates it.
+ *     Accepts a JSON payload with { tenantId, roomId, rentPeriod, amountPaid,
+ *     paymentMethod }. The function queries for the matching pending ledger
+ *     record and updates it.
+ *
+ * DATA TRANSITION (Logical Flow):
+ *   Transaction Created (payment_status="paid")
+ *     ↓
+ *   Function extracts: tenant_id, room_id, rent_period (from period_month/year)
+ *     ↓
+ *   Queries rent_ledger WHERE tenant_id=X AND rent_period="2026-05" AND status="pending"
+ *     ↓
+ *   Updates that ledger row: status="paid", amount_paid=..., paid_at=now()
+ *     ↓
+ *   Mobile app queries rent_ledger WHERE status="pending" → paid items are gone
  *
  * DEPENDENCIES:
  *   - node-appwrite (bundled in the Appwrite runtime)
  *   - No external third-party packages
  *
  * ENVIRONMENT VARIABLES (set via Appwrite Console → Function → Settings):
- *   APPWRITE_ENDPOINT       — e.g. https://fra.cloud.appwrite.io/v1
- *   APPWRITE_FUNCTION_PROJECT_ID — Injected automatically by the runtime
- *   APPWRITE_DATABASE_ID    — "69e5580f00087e980ef3"
- *   RENT_TRANSACTIONS_COLLECTION_ID — "rent_transactions"
+ *   APPWRITE_ENDPOINT              — e.g. https://fra.cloud.appwrite.io/v1
+ *   APPWRITE_FUNCTION_PROJECT_ID   — Injected automatically by the runtime
+ *   APPWRITE_DATABASE_ID           — "69e5580f00087e980ef3"
+ *   RENT_LEDGER_COLLECTION_ID      — "rent_ledger"
  * =============================================================================
  */
 
-const { Client, Databases, Query, ID } = require('node-appwrite');
+const { Client, Databases, Query } = require('node-appwrite');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -47,7 +67,7 @@ const VALID_PAYMENT_METHODS = ['cash', 'online', 'bank_transfer', 'cheque'];
 
 /**
  * Initialises an authenticated Appwrite SDK client using the runtime-injected
- * API key.  Every Appwrite Cloud Function automatically receives an execution
+ * API key. Every Appwrite Cloud Function automatically receives an execution
  * key scoped to the function's configured permissions.
  */
 function createClient() {
@@ -69,8 +89,8 @@ function getCollectionIds() {
     return {
         databaseId:
             process.env.APPWRITE_DATABASE_ID || '69e5580f00087e980ef3',
-        transactionsCollectionId:
-            process.env.RENT_TRANSACTIONS_COLLECTION_ID || 'rent_transactions',
+        ledgerCollectionId:
+            process.env.RENT_LEDGER_COLLECTION_ID || 'rent_ledger',
     };
 }
 
@@ -103,36 +123,64 @@ function buildResponse(status, message, data = null, errorCode = null) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  CORE LOGIC — Update the pending transaction to "paid"
+//  HELPER — Build a rent_period string from month and year
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Atomic-like state update.
+ * Converts numeric month/year into the canonical rent_period string format
+ * used by the rent_ledger collection: "YYYY-MM" (e.g. "2026-05").
+ *
+ * @param {number} month  (1-12)
+ * @param {number} year   (e.g. 2026)
+ * @returns {string} Formatted period string
+ */
+function buildRentPeriod(month, year) {
+    const mm = String(month).padStart(2, '0');
+    return `${year}-${mm}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CORE LOGIC — Update the rent_ledger row from "pending" to "paid"
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Atomic-like state update on the rent_ledger collection.
  *
  * Given a validated payment event, this function:
- *   1. Queries the rent_transactions collection for a document matching the
- *      exact tenant + period_month + period_year with payment_status = "pending".
- *   2. If found, updates that document's payment_status to "paid", records the
- *      paid amount, payment method, and a paid_at timestamp.
- *   3. If NOT found, logs a warning — the record may have been updated already
- *      or the pending record may not exist yet.
+ *   1. Builds the rent_period string (e.g. "2026-05") from month/year.
+ *   2. Queries the rent_ledger collection for a document matching the exact
+ *      tenant_id + rent_period with status = "pending".
+ *   3. If found, updates that ledger row:
+ *        status       → "paid"
+ *        amount_paid  → the amount from the transaction
+ *        paid_at      → current timestamp
+ *        payment_method → from the transaction
+ *        transaction_id → the $id of the transaction that triggered this
+ *   4. If NOT found, logs a warning — the record may have been updated already
+ *      (idempotency) or the pending ledger row may not exist yet.
  *
- * @param {Databases} databases   — Appwrite Databases SDK instance
- * @param {string}    databaseId  — Target database ID
- * @param {string}    collectionId — Target collection ID
- * @param {Object}    payment     — Normalised payment details
+ * @param {Databases} databases    — Appwrite Databases SDK instance
+ * @param {string}    databaseId   — Target database ID
+ * @param {string}    ledgerCollectionId — rent_ledger collection ID
+ * @param {Object}    payment      — Normalised payment details
  * @param {string}    payment.tenantId
  * @param {string}    payment.roomId
  * @param {number}    payment.periodMonth
  * @param {number}    payment.periodYear
  * @param {number}    payment.amountPaid
  * @param {string}    payment.paymentMethod
+ * @param {string}    [payment.transactionId] — The source transaction $id
  * @param {string}    [payment.collectedBy]
  * @param {string}    [payment.receiptNumber]
  *
  * @returns {Promise<Object>} { success, document|null, error }
  */
-async function updatePendingToPaid(databases, databaseId, collectionId, payment) {
+async function updateLedgerToPaid(
+    databases,
+    databaseId,
+    ledgerCollectionId,
+    payment
+) {
     const {
         tenantId,
         roomId,
@@ -140,98 +188,103 @@ async function updatePendingToPaid(databases, databaseId, collectionId, payment)
         periodYear,
         amountPaid,
         paymentMethod,
+        transactionId,
         collectedBy,
         receiptNumber,
     } = payment;
 
-    // ── Step 1: Query for the matching pending transaction ────────────────
-    // We search for a document that has the same tenant, period month/year,
-    // and is still in "pending" status.  This is the "ledger" record that
-    // was created when the rent period started.
+    // Build the canonical rent_period string
+    const rentPeriod = buildRentPeriod(periodMonth, periodYear);
+
+    // ── Step 1: Query for the matching pending ledger row ────────────────
+    // We search for a document in rent_ledger that has the exact tenant + period
+    // and is still in "pending" status. This is the row that was created when
+    // the rent period started (e.g. by a cron job or tenant booking flow).
     const queries = [
         Query.equal('tenant_id', tenantId),
-        Query.equal('period_month', periodMonth),
-        Query.equal('period_year', periodYear),
-        Query.equal('payment_status', 'pending'),
-        Query.limit(1), // There should be at most one pending record per period
+        Query.equal('rent_period', rentPeriod),
+        Query.equal('status', 'pending'),
+        Query.limit(1), // There should be at most one pending row per tenant/period
     ];
 
     let pendingDocs;
     try {
         pendingDocs = await databases.listDocuments(
             databaseId,
-            collectionId,
+            ledgerCollectionId,
             queries
         );
     } catch (err) {
         console.error(
-            `[CRITICAL] Failed to query pending transactions for tenant=${tenantId}, ` +
-            `period=${periodMonth}/${periodYear}: ${err.message}`
+            `[CRITICAL] Failed to query rent_ledger for tenant=${tenantId}, ` +
+            `period=${rentPeriod}: ${err.message}`
         );
         return {
             success: false,
             document: null,
-            error: `Database query failed: ${err.message}`,
+            error: `Ledger query failed: ${err.message}`,
         };
     }
 
-    const pendingTransaction =
+    const pendingLedgerRow =
         Array.isArray(pendingDocs.documents) && pendingDocs.documents.length > 0
             ? pendingDocs.documents[0]
             : null;
 
-    if (!pendingTransaction) {
-        // No pending record found — this could mean:
-        //   a) The payment was already processed (idempotency).
-        //   b) The pending record was never created.
-        //   c) The period identifiers don't match.
+    if (!pendingLedgerRow) {
+        // No pending ledger row found — this could mean:
+        //   a) The payment was already processed (idempotency — the row is
+        //      already "paid").
+        //   b) The pending ledger row was never created for this period.
+        //   c) The tenant_id or rent_period don't match any existing row.
         console.warn(
-            `[WARN] No pending transaction found for tenant=${tenantId}, ` +
-            `period=${periodMonth}/${periodYear}. ` +
-            `The record may have been updated already or does not exist.`
+            `[WARN] No pending ledger row found for tenant=${tenantId}, ` +
+            `period=${rentPeriod}. The record may have been updated already ` +
+            `or does not exist in the rent_ledger collection.`
         );
         return {
-            success: true, // Not a failure — the system may be idempotent
+            success: true, // Not a failure — the system is idempotent
             document: null,
             error: null,
         };
     }
 
-    // ── Step 2: Build the update payload ──────────────────────────────────
+    // ── Step 2: Build the update payload ─────────────────────────────────
     const now = new Date().toISOString();
     const updateData = {
-        payment_status: 'paid',
-        amount: amountPaid,
+        status: 'paid',
+        amount_paid: amountPaid,
+        paid_at: now,
         payment_method: paymentMethod,
-        transaction_date: now,
-        // Track the original pending reason for audit trail
-        // (we keep pending_reason as-is for historical reference)
     };
 
-    // If the caller provided a collector reference, update it
+    // Link back to the source transaction for full audit trail
+    if (transactionId) {
+        updateData.transaction_id = transactionId;
+    }
+
+    // If the caller provided a collector reference, store it in notes
     if (collectedBy) {
-        updateData.collected_by = collectedBy;
+        updateData.notes = `Collected by: ${collectedBy}` +
+            (receiptNumber ? ` | Receipt: ${receiptNumber}` : '');
+    } else if (receiptNumber) {
+        updateData.notes = `Receipt: ${receiptNumber}`;
     }
 
-    // If a receipt number was provided, attach it
-    if (receiptNumber) {
-        updateData.receipt_number = receiptNumber;
-    }
-
-    // ── Step 3: Perform the update ────────────────────────────────────────
+    // ── Step 3: Perform the update ───────────────────────────────────────
     let updatedDocument;
     try {
         updatedDocument = await databases.updateDocument(
             databaseId,
-            collectionId,
-            pendingTransaction.$id,
+            ledgerCollectionId,
+            pendingLedgerRow.$id,
             updateData
         );
     } catch (err) {
         console.error(
-            `[SEVERE] Failed to update pending transaction ` +
-            `(${pendingTransaction.$id}) for tenant=${tenantId}, ` +
-            `period=${periodMonth}/${periodYear}: ${err.message}`
+            `[SEVERE] Failed to update rent_ledger row ` +
+            `(${pendingLedgerRow.$id}) for tenant=${tenantId}, ` +
+            `period=${rentPeriod}: ${err.message}`
         );
         return {
             success: false,
@@ -241,8 +294,9 @@ async function updatePendingToPaid(databases, databaseId, collectionId, payment)
     }
 
     console.log(
-        `[OK] Transaction ${pendingTransaction.$id} updated: ` +
-        `"pending" → "paid", amount=${amountPaid}, method=${paymentMethod}`
+        `[OK] Ledger row ${pendingLedgerRow.$id} updated: ` +
+        `"pending" → "paid", amount=${amountPaid}, method=${paymentMethod}, ` +
+        `period=${rentPeriod}`
     );
 
     return {
@@ -260,8 +314,14 @@ async function updatePendingToPaid(databases, databaseId, collectionId, payment)
  * Extracts payment details from an Appwrite Event Webhook payload.
  *
  * The webhook fires when a document is created in the rent_transactions
- * collection.  The new document is available under
+ * collection. The new document is available under
  * `eventPayload.documents[0]`.
+ *
+ * This parser extracts the fields needed to update the rent_ledger:
+ *   - tenant_id, room_id → to identify the tenant/room
+ *   - period_month, period_year → to build the rent_period string
+ *   - amount, payment_method → to record the payment details
+ *   - $id → to link the ledger row back to the source transaction
  *
  * @param {Object} eventPayload — The raw webhook body
  * @returns {Object|null} Normalised payment object or null if invalid
@@ -293,6 +353,7 @@ function parseWebhookEvent(eventPayload) {
         const periodYear = doc.period_year;
         const amountPaid = doc.amount;
         const paymentMethod = doc.payment_method;
+        const transactionId = doc.$id;
         const collectedBy = doc.collected_by || null;
         const receiptNumber = doc.receipt_number || null;
 
@@ -312,6 +373,7 @@ function parseWebhookEvent(eventPayload) {
             periodYear,
             amountPaid,
             paymentMethod,
+            transactionId,
             collectedBy,
             receiptNumber,
         };
@@ -332,7 +394,7 @@ function parseWebhookEvent(eventPayload) {
  * {
  *   "tenantId":     "<string>",
  *   "roomId":       "<string>",
- *   "rentPeriodId": "<period_month>-<period_year>",  // e.g. "5-2026"
+ *   "rentPeriod":   "<YYYY-MM>",  // e.g. "2026-05"
  *   "amountPaid":   1234.56,
  *   "paymentMethod": "cash" | "online" | "bank_transfer" | "cheque"
  * }
@@ -350,7 +412,7 @@ function parseDirectPayload(payload) {
         const {
             tenantId,
             roomId,
-            rentPeriodId,
+            rentPeriod,
             amountPaid,
             paymentMethod,
         } = payload;
@@ -359,7 +421,7 @@ function parseDirectPayload(payload) {
         const missing = [];
         if (!tenantId) missing.push('tenantId');
         if (!roomId) missing.push('roomId');
-        if (!rentPeriodId) missing.push('rentPeriodId');
+        if (!rentPeriod) missing.push('rentPeriod');
         if (amountPaid === undefined || amountPaid === null) missing.push('amountPaid');
         if (!paymentMethod) missing.push('paymentMethod');
 
@@ -388,18 +450,18 @@ function parseDirectPayload(payload) {
             return null;
         }
 
-        // ── Parse rentPeriodId (format: "<month>-<year>", e.g. "5-2026") ──
-        const periodParts = String(rentPeriodId).split('-');
+        // ── Parse rentPeriod (format: "YYYY-MM", e.g. "2026-05") ──────────
+        const periodParts = String(rentPeriod).split('-');
         if (periodParts.length !== 2) {
             console.warn(
-                `[WARN] Invalid rentPeriodId format: "${rentPeriodId}". ` +
-                `Expected "<month>-<year>" (e.g. "5-2026").`
+                `[WARN] Invalid rentPeriod format: "${rentPeriod}". ` +
+                `Expected "YYYY-MM" (e.g. "2026-05").`
             );
             return null;
         }
 
-        const periodMonth = parseInt(periodParts[0], 10);
-        const periodYear = parseInt(periodParts[1], 10);
+        const periodYear = parseInt(periodParts[0], 10);
+        const periodMonth = parseInt(periodParts[1], 10);
 
         if (
             isNaN(periodMonth) ||
@@ -409,7 +471,7 @@ function parseDirectPayload(payload) {
             periodYear < 2000
         ) {
             console.warn(
-                `[WARN] Invalid period values from rentPeriodId="${rentPeriodId}": ` +
+                `[WARN] Invalid period values from rentPeriod="${rentPeriod}": ` +
                 `month=${periodMonth}, year=${periodYear}`
             );
             return null;
@@ -422,6 +484,7 @@ function parseDirectPayload(payload) {
             periodYear,
             amountPaid: parsedAmount,
             paymentMethod,
+            transactionId: payload.transactionId || null,
             collectedBy: payload.collectedBy || null,
             receiptNumber: payload.receiptNumber || null,
         };
@@ -463,7 +526,7 @@ module.exports = async function (req, res) {
         );
     }
 
-    const { databaseId, transactionsCollectionId } = ids;
+    const { databaseId, ledgerCollectionId } = ids;
 
     // ── Detect execution flow ─────────────────────────────────────────────
     const isWebhook = Boolean(req.headers['x-appwrite-event']);
@@ -510,7 +573,7 @@ module.exports = async function (req, res) {
 
             console.log(
                 `[FLOW A] Webhook triggered for tenant=${payment.tenantId}, ` +
-                `period=${payment.periodMonth}/${payment.periodYear}`
+                `period=${buildRentPeriod(payment.periodMonth, payment.periodYear)}`
             );
         } else {
             // ── Flow B: Direct API Call ───────────────────────────────────
@@ -541,7 +604,7 @@ module.exports = async function (req, res) {
                     buildResponse(
                         'error',
                         'Invalid or incomplete payment payload. ' +
-                        'Required: tenantId, roomId, rentPeriodId (format "<month>-<year>"), ' +
+                        'Required: tenantId, roomId, rentPeriod (format "YYYY-MM"), ' +
                         'amountPaid, paymentMethod',
                         null,
                         'VALIDATION_ERROR'
@@ -552,25 +615,26 @@ module.exports = async function (req, res) {
 
             console.log(
                 `[FLOW B] Direct execution for tenant=${payment.tenantId}, ` +
-                `period=${payment.periodMonth}/${payment.periodYear}`
+                `period=${buildRentPeriod(payment.periodMonth, payment.periodYear)}`
             );
         }
 
         // ──────────────────────────────────────────────────────────────────
-        //  EXECUTE THE STATE UPDATE
+        //  EXECUTE THE LEDGER STATE UPDATE
         // ──────────────────────────────────────────────────────────────────
-        const result = await updatePendingToPaid(
+        const result = await updateLedgerToPaid(
             databases,
             databaseId,
-            transactionsCollectionId,
+            ledgerCollectionId,
             payment
         );
 
         if (!result.success) {
-            // The update failed — this is a severe error
+            // The update failed — this is a severe error that needs attention
             console.error(
-                `[SEVERE] State update failed for flow=${flowLabel}, ` +
-                `tenant=${payment.tenantId}, period=${payment.periodMonth}/${payment.periodYear}: ` +
+                `[SEVERE] Ledger state update failed for flow=${flowLabel}, ` +
+                `tenant=${payment.tenantId}, ` +
+                `period=${buildRentPeriod(payment.periodMonth, payment.periodYear)}: ` +
                 `${result.error}`
             );
 
@@ -594,30 +658,30 @@ module.exports = async function (req, res) {
         // ── Success ───────────────────────────────────────────────────────
         const responseData = {
             tenantId: payment.tenantId,
-            periodMonth: payment.periodMonth,
-            periodYear: payment.periodYear,
+            rentPeriod: buildRentPeriod(payment.periodMonth, payment.periodYear),
             amountPaid: payment.amountPaid,
             paymentMethod: payment.paymentMethod,
             flow: flowLabel,
-            updatedDocumentId: result.document ? result.document.$id : null,
+            updatedLedgerRowId: result.document ? result.document.$id : null,
             previousStatus: 'pending',
             newStatus: 'paid',
         };
 
         if (!result.document) {
-            // No pending record was found — the system is idempotent
+            // No pending ledger row was found — the system is idempotent
             responseData.note =
-                'No pending record needed updating (already processed or not found).';
+                'No pending ledger row needed updating (already processed or not found).';
         }
 
         console.log(
             `[SUCCESS] Flow=${flowLabel} | tenant=${payment.tenantId} | ` +
-            `period=${payment.periodMonth}/${payment.periodYear} | ` +
-            `amount=${payment.amountPaid} | docId=${responseData.updatedDocumentId || 'N/A'}`
+            `period=${responseData.rentPeriod} | ` +
+            `amount=${payment.amountPaid} | ` +
+            `ledgerRowId=${responseData.updatedLedgerRowId || 'N/A'}`
         );
 
         return res.json(
-            buildResponse('success', 'Rent payment state updated successfully', responseData),
+            buildResponse('success', 'Rent ledger state updated successfully', responseData),
             200
         );
     } catch (err) {

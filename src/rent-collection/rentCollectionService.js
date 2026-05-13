@@ -14,7 +14,7 @@
  * ============================================
  */
 
-const { ID, Query } = require('../config/appwrite');
+const { ID, Query, databases, DATABASE_ID, TENANTS_COLLECTION_ID } = require('../config/appwrite');
 const BaseService = require('../services/BaseService');
 const TenantService = require('../services/TenantService');
 const RoomService = require('../services/RoomService');
@@ -69,7 +69,8 @@ class RentCollectionService {
 
     /**
      * Verify that the room exists and is occupied.
-     * 
+     * Checks both the room status AND whether an active tenant is assigned.
+     *
      * @returns {{ valid: boolean, room?: Object, error?: string }}
      */
     async verifyRoom(roomId) {
@@ -80,11 +81,31 @@ class RentCollectionService {
 
         const room = roomResult.data;
 
-        if (room.status !== 'occupied') {
-            return { valid: false, error: 'Room is not occupied' };
+        // Primary check: room status
+        if (room.status === 'occupied') {
+            return { valid: true, room };
         }
 
-        return { valid: true, room };
+        // Secondary check: if room status is not 'occupied', check if there's
+        // an active tenant assigned to this room (handles cases where room
+        // status wasn't updated when tenant was assigned)
+        try {
+            const tenantsResult = await databases.listDocuments(
+                DATABASE_ID,
+                TENANTS_COLLECTION_ID,
+                [
+                    Query.equal('room_id', roomId),
+                    Query.equal('status', 'active')
+                ]
+            );
+            if (tenantsResult.documents && tenantsResult.documents.length > 0) {
+                return { valid: true, room };
+            }
+        } catch (error) {
+            console.error(`[RentCollection] Error checking active tenant for room ${roomId}:`, error.message);
+        }
+
+        return { valid: false, error: 'Room is not occupied' };
     }
 
     /**

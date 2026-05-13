@@ -59,8 +59,9 @@ class PendingRentService {
                 queries.push(Query.equal('payment_status', payment_status));
             } else {
                 // Default: show both pending and overdue (exclude paid and partial)
-                queries.push(Query.notEqual('payment_status', 'paid'));
-                queries.push(Query.notEqual('payment_status', 'partial'));
+                // Appwrite's notEqual only supports a single value, so we use equal with
+                // an array of the statuses we DO want to include
+                queries.push(Query.equal('payment_status', ['pending', 'overdue']));
             }
 
             if (room_id) {

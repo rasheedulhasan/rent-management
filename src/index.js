@@ -13,6 +13,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const rentCollectionRoutes = require('./rent-collection/rentCollectionRoutes');
 const rentLedgerRoutes = require('./rent-ledger/rentLedgerRoutes');
 const rentLedgerCycleRoutes = require('./routes/rentLedgerCycleRoutes');
+const pendingRentRoutes = require('./routes/pendingRentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -90,6 +91,14 @@ app.use('/api/rent-ledger', rentLedgerRoutes);
 // GET  /api/rent-ledger/cycle/status
 // =====================
 app.use('/api/rent-ledger', rentLedgerCycleRoutes);
+
+// =====================
+// Pending Rent API (Read-only)
+// GET /api/rent/pending
+// GET /api/rent/pending/summary
+// GET /api/rent/pending/stats
+// =====================
+app.use('/api/rent', pendingRentRoutes);
 
 // =====================
 // Pending Rent Module (Isolated Add-on)

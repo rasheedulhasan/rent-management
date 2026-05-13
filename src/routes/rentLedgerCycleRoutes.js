@@ -3,8 +3,9 @@
  * Rent Ledger Cycle Routes
  * ============================================
  *
- * POST /api/rent-ledger/cycle/run   - Run the monthly cycle job manually
- * GET  /api/rent-ledger/cycle/status - Check cycle status for a given period
+ * POST /api/rent-ledger/cycle/generate - Generate monthly ledger entries (idempotent)
+ * POST /api/rent-ledger/cycle/run      - Run the full monthly cycle job
+ * GET  /api/rent-ledger/cycle/status   - Check cycle status for a given period
  *
  * These endpoints allow manual triggering of the monthly cycle job
  * (creating pending ledger entries and closing previous month).
@@ -16,6 +17,53 @@
 const express = require('express');
 const router = express.Router();
 const RentLedgerCycleService = require('../services/RentLedgerCycleService');
+
+/**
+ * POST /api/rent-ledger/cycle/generate
+ *
+ * Generate monthly ledger entries for all active tenants.
+ * This is the idempotent cycle initialization — checks if entries already
+ * exist for the given month/year before creating them.
+ *
+ * Body:
+ *   { "month": 5, "year": 2026 }  — required
+ */
+router.post('/cycle/generate', async (req, res) => {
+    try {
+        const { month, year } = req.body || {};
+
+        if (!month || !year) {
+            return res.status(400).json({
+                success: false,
+                error: 'month and year are required'
+            });
+        }
+
+        const result = await RentLedgerCycleService.generateMonthlyCycle(
+            parseInt(month),
+            parseInt(year)
+        );
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: result.data.message || `Generated ${result.data.created} ledger entries for ${result.data.month}/${result.data.year}.`,
+                data: result.data
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error in POST /api/rent-ledger/cycle/generate:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate monthly cycle'
+        });
+    }
+});
 
 /**
  * POST /api/rent-ledger/cycle/run

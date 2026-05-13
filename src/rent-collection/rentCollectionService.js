@@ -165,34 +165,105 @@ class RentCollectionService {
 
             const transaction = transactionResult.data;
 
-            // ── Step 7: Write to rent_ledger collection ──
-            // This creates a permanent record in the rent_ledger table that tracks
-            // the payment status for each rent period. The cloud function
-            // (rent-payment-state-update) also handles this via webhook, but we
-            // write directly here to ensure the ledger is always up-to-date.
+            // ── Step 7: Update rent_ledger collection (mark as paid) ──
+            // CRITICAL: Find the existing rent_ledger record for this tenant/period
+            // and update its status from 'pending' to 'paid'.
+            // Do NOT create a new entry — the record was created by the monthly cycle job.
+            // This is what removes the tenant from the Pending List on next refresh.
             try {
-                const ledgerEntry = {
-                    tenant_id: dbData.tenant_id,
-                    room_id: dbData.room_id,
-                    rent_period: `${dbData.period_year}-${String(dbData.period_month).padStart(2, '0')}`,
-                    status: dbData.payment_status === 'paid' ? 'paid' : (dbData.payment_status === 'partial' ? 'partial' : 'pending'),
-                    amount_due: dbData.monthly_rent,
-                    amount_paid: dbData.amount,
-                    paid_at: dbData.transaction_date,
-                    payment_method: dbData.payment_method,
-                    transaction_id: transaction.$id,
-                    notes: dbData.remarks || ''
-                };
+                const periodMonth = dbData.period_month || (new Date().getMonth() + 1);
+                const periodYear = dbData.period_year || new Date().getFullYear();
+                const amountPaid = parseFloat(dbData.amount) || 0;
 
-                await databases.createDocument(
+                // Find the existing rent_ledger entry for this tenant + period
+                const existingResult = await databases.listDocuments(
                     DATABASE_ID,
                     RENT_LEDGER_COLLECTION_ID,
-                    ID.unique(),
-                    ledgerEntry
+                    [
+                        Query.equal('tenant_id', dbData.tenant_id),
+                        Query.equal('period_month', periodMonth),
+                        Query.equal('period_year', periodYear)
+                    ],
+                    1
                 );
+
+                if (existingResult.documents && existingResult.documents.length > 0) {
+                    // Update the existing record — flip status to 'paid'
+                    const ledgerEntry = existingResult.documents[0];
+                    const monthlyRent = parseFloat(ledgerEntry.monthly_rent) || parseFloat(dbData.monthly_rent) || 0;
+                    const currentPaid = parseFloat(ledgerEntry.amount_paid) || 0;
+                    const newTotalPaid = currentPaid + amountPaid;
+                    const newPendingBalance = Math.max(0, monthlyRent - newTotalPaid);
+                    const newStatus = newPendingBalance > 0 ? 'partial' : 'paid';
+
+                    await databases.updateDocument(
+                        DATABASE_ID,
+                        RENT_LEDGER_COLLECTION_ID,
+                        ledgerEntry.$id,
+                        {
+                            status: newStatus,
+                            payment_status: newStatus,
+                            amount_paid: newTotalPaid,
+                            pending_balance: newPendingBalance,
+                            paid_at: dbData.transaction_date,
+                            payment_method: dbData.payment_method,
+                            transaction_id: transaction.$id,
+                            notes: dbData.remarks || '',
+                            updated_at: new Date().toISOString()
+                        }
+                    );
+
+                    console.log(
+                        `[RentCollection] Ledger ${ledgerEntry.$id} updated: pending → ${newStatus} ` +
+                        `(paid: ${newTotalPaid}, pending: ${newPendingBalance})`
+                    );
+                } else {
+                    // No existing ledger entry — create one as 'paid' on the fly
+                    // This handles edge cases where payment comes before cycle job runs
+                    console.warn(
+                        `[RentCollection] No ledger entry found for tenant ${dbData.tenant_id}, ` +
+                        `period ${periodMonth}/${periodYear}. Creating on-the-fly.`
+                    );
+
+                    const monthlyRent = parseFloat(dbData.monthly_rent) || 0;
+                    const pendingBalance = Math.max(0, monthlyRent - amountPaid);
+                    const status = pendingBalance > 0 ? 'partial' : 'paid';
+                    const rentPeriod = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
+                    const dueDateStr = `${periodYear}-${String(periodMonth).padStart(2, '0')}-01`;
+
+                    await databases.createDocument(
+                        DATABASE_ID,
+                        RENT_LEDGER_COLLECTION_ID,
+                        ID.unique(),
+                        {
+                            tenant_id: dbData.tenant_id,
+                            tenant_name: tenantCheck.tenant?.full_name || 'Unknown',
+                            room_id: dbData.room_id,
+                            room_number: roomCheck.room?.room_number || '',
+                            monthly_rent: monthlyRent,
+                            expected_rent: monthlyRent,
+                            amount_due: monthlyRent,
+                            amount_paid: amountPaid,
+                            pending_balance: pendingBalance,
+                            status: status,
+                            payment_status: status,
+                            period_month: periodMonth,
+                            period_year: periodYear,
+                            rent_period: rentPeriod,
+                            rent_due_date: dueDateStr,
+                            paid_at: dbData.transaction_date,
+                            payment_method: dbData.payment_method,
+                            transaction_id: transaction.$id,
+                            notes: dbData.remarks || '',
+                            overdue_days: 0,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }
+                    );
+                }
             } catch (ledgerError) {
                 // Non-blocking — log but don't fail the response
-                console.error('[RentCollection] Failed to write to rent_ledger (non-blocking):', ledgerError.message);
+                console.error('[RentCollection] Failed to update rent_ledger (non-blocking):', ledgerError.message);
             }
 
             // ── Step 8: Send SMS receipt (if requested) ──
@@ -213,7 +284,7 @@ class RentCollectionService {
                 }
             }
 
-            // ── Step 8: Return success response ──
+            // ── Step 9: Return success response ──
             return {
                 success: true,
                 statusCode: 200,

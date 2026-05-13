@@ -30,6 +30,141 @@ const RoomService = require('./RoomService');
 
 class RentLedgerCycleService {
     /**
+     * Generate the monthly cycle — creates 'pending' rent_ledger entries
+     * for all active tenants for the given month/year.
+     *
+     * This is the primary function that should be called by the monthly cron job.
+     * It checks if entries already exist (idempotent) and skips duplicates.
+     *
+     * Flow:
+     *   1. Check if rent_ledger already has entries for this month/year
+     *   2. If not, get all Active Tenants from TenantService
+     *   3. Create a 'pending' record in rent_ledger for each active tenant
+     *      with their expected_rent
+     *
+     * @param {number} month - Month (1-12)
+     * @param {number} year - Year (e.g., 2026)
+     * @returns {Object} { success, data: { created, month, year } }
+     */
+    async generateMonthlyCycle(month, year) {
+        try {
+            const targetMonth = parseInt(month);
+            const targetYear = parseInt(year);
+
+            if (isNaN(targetMonth) || targetMonth < 1 || targetMonth > 12) {
+                return { success: false, error: 'Invalid month. Must be between 1 and 12.' };
+            }
+            if (isNaN(targetYear) || targetYear < 2000) {
+                return { success: false, error: 'Invalid year.' };
+            }
+
+            // Check if rent_ledger already has entries for this month/year
+            const existingResult = await databases.listDocuments(
+                DATABASE_ID,
+                RENT_LEDGER_COLLECTION_ID,
+                [
+                    Query.equal('period_month', targetMonth),
+                    Query.equal('period_year', targetYear)
+                ],
+                1
+            );
+
+            if (existingResult.documents && existingResult.documents.length > 0) {
+                return {
+                    success: true,
+                    data: {
+                        created: 0,
+                        month: targetMonth,
+                        year: targetYear,
+                        message: 'Entries already exist for this period. Skipping.'
+                    }
+                };
+            }
+
+            // Get all active tenants
+            const tenantsResult = await TenantService.getTenantsByStatus('active');
+            if (!tenantsResult.success || !tenantsResult.data.documents) {
+                return { success: false, error: 'Failed to fetch active tenants' };
+            }
+
+            const activeTenants = tenantsResult.data.documents;
+            let createdCount = 0;
+
+            // Create a 'pending' record for each active tenant
+            for (const tenant of activeTenants) {
+                const monthlyRent = parseFloat(tenant.monthly_rent) || 0;
+                if (monthlyRent <= 0) continue;
+
+                // Get room details
+                let roomNumber = '';
+                let roomMonthlyRent = monthlyRent;
+                try {
+                    const roomResult = await RoomService.getById(tenant.room_id);
+                    if (roomResult.success) {
+                        roomNumber = roomResult.data.room_number || '';
+                        roomMonthlyRent = parseFloat(roomResult.data.monthly_rent) || monthlyRent;
+                    }
+                } catch (e) {
+                    // Room lookup failed, use tenant's monthly_rent
+                }
+
+                const dueDateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+                const rentPeriod = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
+
+                try {
+                    await databases.createDocument(
+                        DATABASE_ID,
+                        RENT_LEDGER_COLLECTION_ID,
+                        ID.unique(),
+                        {
+                            tenant_id: tenant.$id,
+                            tenant_name: tenant.full_name || 'Unknown',
+                            room_id: tenant.room_id || '',
+                            room_number: roomNumber,
+                            monthly_rent: roomMonthlyRent,
+                            expected_rent: roomMonthlyRent,
+                            amount_due: roomMonthlyRent,
+                            amount_paid: 0,
+                            pending_balance: roomMonthlyRent,
+                            status: 'pending',
+                            payment_status: 'pending',
+                            period_month: targetMonth,
+                            period_year: targetYear,
+                            rent_period: rentPeriod,
+                            rent_due_date: dueDateStr,
+                            overdue_days: 0,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }
+                    );
+                    createdCount++;
+                } catch (createError) {
+                    console.error(
+                        `[RentLedgerCycleService] Failed to create ledger for tenant ${tenant.$id}:`,
+                        createError.message
+                    );
+                }
+            }
+
+            console.log(
+                `[RentLedgerCycleService] generateMonthlyCycle: Created ${createdCount} entries for ${targetMonth}/${targetYear}`
+            );
+
+            return {
+                success: true,
+                data: {
+                    created: createdCount,
+                    month: targetMonth,
+                    year: targetYear
+                }
+            };
+        } catch (error) {
+            console.error('[RentLedgerCycleService] Error in generateMonthlyCycle:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Run the monthly cycle job.
      * Should be called on the 1st of each month (via cron or manual trigger).
      *

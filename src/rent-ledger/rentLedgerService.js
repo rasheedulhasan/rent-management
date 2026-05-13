@@ -10,8 +10,13 @@
  *   1. Validate input via DTO
  *   2. Verify tenant exists and is active
  *   3. Prepare data and insert into rent_transactions
- *   4. Update tenant's last_payment_date
- *   5. Return success response with ledger entry ID
+ *   4. Update rent_ledger collection (mark as paid)
+ *   5. Update tenant's last_payment_date
+ *   6. Return success response with ledger entry ID
+ *
+ * Key Fix: Step 4 updates the rent_ledger collection.
+ * A tenant only disappears from the "Pending" list when
+ * their rent_ledger record is updated to status: "paid".
  * ============================================
  */
 
@@ -19,6 +24,7 @@ const { ID, Query } = require('../config/appwrite');
 const BaseService = require('../services/BaseService');
 const TenantService = require('../services/TenantService');
 const RentTransactionService = require('../services/RentTransactionService');
+const RentLedgerCycleService = require('../services/RentLedgerCycleService');
 const RentLedgerDTO = require('./rentLedger.dto');
 
 class RentLedgerService {
@@ -104,7 +110,29 @@ class RentLedgerService {
 
             const transaction = transactionResult.data;
 
-            // ── Step 5: Update tenant's last_payment_date ──
+            // ── Step 5: Update rent_ledger collection (mark as paid) ──
+            // This is the critical fix: a tenant only disappears from the "Pending" list
+            // when their rent_ledger record is updated to status: "paid"
+            try {
+                const periodMonth = dbData.period_month || (new Date().getMonth() + 1);
+                const periodYear = dbData.period_year || new Date().getFullYear();
+                const amountPaid = parseFloat(dbData.amount) || 0;
+
+                await RentLedgerCycleService.markAsPaid(
+                    tenant.$id,
+                    periodMonth,
+                    periodYear,
+                    amountPaid
+                );
+            } catch (ledgerError) {
+                // Non-blocking — log but don't fail the response
+                console.error(
+                    '[RentLedgerService] Failed to update rent_ledger:',
+                    ledgerError.message
+                );
+            }
+
+            // ── Step 6: Update tenant's last_payment_date ──
             try {
                 await TenantService.updateTenant(tenant.$id, {
                     last_payment_date: dbData.transaction_date
@@ -117,7 +145,7 @@ class RentLedgerService {
                 );
             }
 
-            // ── Step 6: Return success response ──
+            // ── Step 7: Return success response ──
             return {
                 success: true,
                 statusCode: 201,

@@ -12,6 +12,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const rentCollectionRoutes = require('./rent-collection/rentCollectionRoutes');
 const rentLedgerRoutes = require('./rent-ledger/rentLedgerRoutes');
+const rentLedgerCycleRoutes = require('./routes/rentLedgerCycleRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -82,6 +83,13 @@ app.use('/api/rent', rentCollectionRoutes);
 // POST /api/rent-ledger/record
 // =====================
 app.use('/api/rent-ledger', rentLedgerRoutes);
+
+// =====================
+// Rent Ledger Cycle API (Monthly Cycle Job)
+// POST /api/rent-ledger/cycle/run
+// GET  /api/rent-ledger/cycle/status
+// =====================
+app.use('/api/rent-ledger', rentLedgerCycleRoutes);
 
 // =====================
 // Pending Rent Module (Isolated Add-on)

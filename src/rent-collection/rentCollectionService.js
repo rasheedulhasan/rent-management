@@ -2,11 +2,11 @@
  * ============================================
  * Rent Collection Service
  * ============================================
- * 
+ *
  * Core business logic for collecting rent.
  * Uses service/repository pattern on top of
  * existing BaseService / Appwrite layer.
- * 
+ *
  * Reusable by:
  *   - Mobile App (POST /api/rent/collect)
  *   - Admin Dashboard (POST /api/rent/collect)
@@ -14,7 +14,7 @@
  * ============================================
  */
 
-const { ID, Query, databases, DATABASE_ID, TENANTS_COLLECTION_ID } = require('../config/appwrite');
+const { ID, Query, databases, DATABASE_ID, TENANTS_COLLECTION_ID, RENT_LEDGER_COLLECTION_ID } = require('../config/appwrite');
 const BaseService = require('../services/BaseService');
 const TenantService = require('../services/TenantService');
 const RoomService = require('../services/RoomService');
@@ -165,7 +165,37 @@ class RentCollectionService {
 
             const transaction = transactionResult.data;
 
-            // ── Step 7: Send SMS receipt (if requested) ──
+            // ── Step 7: Write to rent_ledger collection ──
+            // This creates a permanent record in the rent_ledger table that tracks
+            // the payment status for each rent period. The cloud function
+            // (rent-payment-state-update) also handles this via webhook, but we
+            // write directly here to ensure the ledger is always up-to-date.
+            try {
+                const ledgerEntry = {
+                    tenant_id: dbData.tenant_id,
+                    room_id: dbData.room_id,
+                    rent_period: `${dbData.period_year}-${String(dbData.period_month).padStart(2, '0')}`,
+                    status: dbData.payment_status === 'paid' ? 'paid' : (dbData.payment_status === 'partial' ? 'partial' : 'pending'),
+                    amount_due: dbData.monthly_rent,
+                    amount_paid: dbData.amount,
+                    paid_at: dbData.transaction_date,
+                    payment_method: dbData.payment_method,
+                    transaction_id: transaction.$id,
+                    notes: dbData.remarks || ''
+                };
+
+                await databases.createDocument(
+                    DATABASE_ID,
+                    RENT_LEDGER_COLLECTION_ID,
+                    ID.unique(),
+                    ledgerEntry
+                );
+            } catch (ledgerError) {
+                // Non-blocking — log but don't fail the response
+                console.error('[RentCollection] Failed to write to rent_ledger (non-blocking):', ledgerError.message);
+            }
+
+            // ── Step 8: Send SMS receipt (if requested) ──
             if (requestData.send_sms_receipt === true || requestData.send_sms_receipt === 'true') {
                 const tenantPhone = tenantCheck.tenant?.phone_number;
                 if (tenantPhone) {

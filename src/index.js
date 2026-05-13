@@ -11,6 +11,7 @@ const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const rentCollectionRoutes = require('./rent-collection/rentCollectionRoutes');
+const rentLedgerRoutes = require('./rent-ledger/rentLedgerRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -75,6 +76,12 @@ app.use('/api/dashboard', dashboardRoutes);
 // POST /api/rent/collect
 // =====================
 app.use('/api/rent', rentCollectionRoutes);
+
+// =====================
+// Rent Ledger API (Simplified Payment Recording)
+// POST /api/rent-ledger/record
+// =====================
+app.use('/api/rent-ledger', rentLedgerRoutes);
 
 // =====================
 // Pending Rent Module (Isolated Add-on)

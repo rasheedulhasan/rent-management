@@ -44,6 +44,9 @@ class TenantService extends BaseService {
             updateData.security_deposit = parseFloat(tenantData.security_deposit);
         }
 
+        // Preserve last_payment_date as-is (already a string from the caller)
+        // No parsing needed — it's passed through directly
+
         return await this.update(tenantId, updateData);
     }
 

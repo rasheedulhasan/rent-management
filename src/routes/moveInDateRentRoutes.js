@@ -1,24 +1,23 @@
 /**
- * Move-In-Date Based Pending Rent Routes
- * 
- * ISOLATED ROUTES - Does NOT modify existing routes or APIs.
- * All operations are READ-ONLY.
- * 
- * GET /api/rent/pending - Get pending rent data based on move_in_date logic
- * 
+ * Calculated Pending Rent Routes
+ *
+ * GET /api/rent/pending - Get pending rent as a calculated balance.
+ *
  * Business Logic:
- *   - Uses tenant.move_in_date day as monthly due day
- *   - Only active tenants in occupied rooms
- *   - Dynamic calculation only - no database writes
- *   - No auto-creation of transaction records
- * 
- * Status Categories:
- *   - due_today: Today's date matches the monthly due day
- *   - overdue:   Today's date is AFTER the monthly due day
- *   - upcoming:  Today's date is BEFORE the monthly due day
- * 
+ *   - Fetches all Active tenants
+ *   - Calculates months elapsed from check_in_date to today
+ *   - total_due = months_elapsed * monthly_rent
+ *   - total_paid = sum of all rent_transactions.amount for that tenant
+ *   - pending_balance = total_due - total_paid
+ *   - Only includes tenants where pending_balance > 0
+ *
+ * Output Format:
+ *   {
+ *     tenant_id, full_name, room_id,
+ *     total_due, total_paid, pending_balance
+ *   }
+ *
  * Filters:
- *   ?status=overdue       - Filter by status (due_today, upcoming, overdue)
  *   ?room_id=abc123       - Filter by room ID
  *   ?tenant_name=Ahmed    - Search by tenant name (partial match)
  *   ?page=1               - Page number (default: 1)
@@ -29,30 +28,16 @@ const router = express.Router();
 const moveInDateRentService = require('../services/MoveInDateRentService');
 const validationMiddleware = require('../middleware/validationMiddleware');
 
-// Valid status values for this API
-const VALID_STATUSES = ['due_today', 'upcoming', 'overdue'];
-
 /**
  * GET /api/rent/pending
- * 
- * Get pending rent collection data based on move-in-date logic.
+ *
+ * Get pending rent as a calculated cumulative balance.
  * Dynamic calculation only - no database writes.
  */
 router.get(
     '/pending',
     // Validate pagination parameters
     validationMiddleware.validatePagination,
-    // Validate status filter if provided
-    (req, res, next) => {
-        const { status } = req.query;
-        if (status && !VALID_STATUSES.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                error: `Invalid status filter. Must be one of: ${VALID_STATUSES.join(', ')}`
-            });
-        }
-        next();
-    },
     // Validate room_id if provided
     (req, res, next) => {
         const { room_id } = req.query;
@@ -68,7 +53,6 @@ router.get(
     async (req, res) => {
         try {
             const {
-                status,
                 room_id,
                 tenant_name,
                 page,
@@ -76,7 +60,6 @@ router.get(
             } = req.query;
 
             const result = await moveInDateRentService.getPendingRents({
-                status: status || null,
                 room_id: room_id || null,
                 tenant_name: tenant_name || null,
                 page: page ? parseInt(page) : 1,
@@ -99,7 +82,7 @@ router.get(
                 });
             }
         } catch (error) {
-            console.error('Error in GET /api/rent/pending (move-in-date):', error);
+            console.error('Error in GET /api/rent/pending (calculated balance):', error);
             res.status(500).json({
                 success: false,
                 error: 'Failed to fetch pending rent data'

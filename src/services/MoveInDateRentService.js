@@ -1,28 +1,27 @@
 /**
  * MoveInDateRentService
- * 
- * ISOLATED SERVICE - Calculates pending rent based on tenant's move_in_date.
- * The day-of-month from move_in_date is treated as the monthly rent due day.
- * 
- * This is a READ-ONLY, VIRTUAL calculation service.
- * Does NOT create or modify any database records.
- * Does NOT affect existing RentCalculationService, PendingRentService, or any other service.
- * 
- * Status Logic:
- *   - due_today:  Today's date matches the monthly due day
- *   - overdue:    Today's date is AFTER the monthly due day
- *   - upcoming:   Today's date is BEFORE the monthly due day
+ *
+ * CALCULATED BALANCE SERVICE - Computes pending rent as a cumulative balance.
+ *
+ * Logic:
+ *   1. Fetch all Active tenants and their rent_ledger records.
+ *   2. For each tenant, calculate months elapsed from check_in_date to today.
+ *   3. total_due = months_elapsed * monthly_rent
+ *   4. total_paid = sum of all rent_transactions.amount for that tenant
+ *   5. pending_balance = total_due - total_paid
+ *   6. Only include tenants where pending_balance > 0
+ *
+ * Output: { tenant_id, full_name, room_id, total_due, total_paid, pending_balance }
  */
-const RoomService = require('./RoomService');
 const TenantService = require('./TenantService');
+const RentTransactionService = require('./RentTransactionService');
 const { Query } = require('../config/appwrite');
 
 class MoveInDateRentService {
     /**
-     * Get pending rent data based on move-in-date logic.
-     * 
+     * Get pending rent data — calculated as cumulative balance.
+     *
      * @param {Object} filters
-     * @param {string} filters.status - Filter by status: due_today, upcoming, overdue
      * @param {string} filters.room_id - Filter by specific room ID
      * @param {string} filters.tenant_name - Search by tenant name (partial match)
      * @param {number} filters.page - Page number (1-based), defaults to 1
@@ -32,7 +31,6 @@ class MoveInDateRentService {
     async getPendingRents(filters = {}) {
         try {
             const {
-                status,
                 room_id,
                 tenant_name,
                 page = 1,
@@ -42,50 +40,35 @@ class MoveInDateRentService {
             const pageNum = Math.max(1, parseInt(page) || 1);
             const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
 
-            // 1. Get all occupied rooms
-            const roomsResult = await RoomService.getRoomsByStatus('occupied');
-            if (!roomsResult.success) {
-                return { success: false, error: roomsResult.error };
+            // 1. Fetch all active tenants
+            const tenantsResult = await TenantService.getTenantsByStatus('active');
+            if (!tenantsResult.success) {
+                return { success: false, error: tenantsResult.error };
             }
 
-            const occupiedRooms = roomsResult.data.documents;
+            const activeTenants = tenantsResult.data.documents;
             const pendingData = [];
 
-            // 2. For each occupied room, find the active tenant
-            for (const room of occupiedRooms) {
+            // 2. For each active tenant, calculate cumulative balance
+            for (const tenant of activeTenants) {
                 // Apply room_id filter early
-                if (room_id && room.$id !== room_id) continue;
-
-                // Find active tenant in this room
-                const tenantsResult = await TenantService.list(
-                    [
-                        Query.equal('room_id', room.$id),
-                        Query.equal('status', 'active')
-                    ],
-                    1
-                );
-
-                if (!tenantsResult.success || tenantsResult.data.documents.length === 0) {
-                    continue; // No active tenant in this occupied room
-                }
-
-                const tenant = tenantsResult.data.documents[0];
-
-                // Calculate pending rent info based on move_in_date
-                const rentInfo = this.calculateRentInfo(tenant, room);
-                if (!rentInfo) continue;
-
-                // Apply status filter
-                if (status && rentInfo.status !== status) continue;
+                if (room_id && tenant.room_id !== room_id) continue;
 
                 // Apply tenant_name search filter
                 if (tenant_name) {
                     const searchLower = tenant_name.toLowerCase();
-                    const nameMatch = rentInfo.tenant_name.toLowerCase().includes(searchLower);
+                    const nameMatch = (tenant.full_name || '').toLowerCase().includes(searchLower);
                     if (!nameMatch) continue;
                 }
 
-                pendingData.push(rentInfo);
+                // Calculate cumulative balance for this tenant
+                const balanceInfo = await this.calculateTenantBalance(tenant);
+                if (!balanceInfo) continue;
+
+                // Only include tenants with pending_balance > 0
+                if (balanceInfo.pending_balance <= 0) continue;
+
+                pendingData.push(balanceInfo);
             }
 
             // 3. Calculate summary
@@ -113,129 +96,122 @@ class MoveInDateRentService {
     }
 
     /**
-     * Calculate rent info for a single tenant based on their move_in_date.
-     * 
+     * Calculate cumulative balance for a single tenant.
+     *
      * @param {Object} tenant - Tenant document from Appwrite
-     * @param {Object} room - Room document from Appwrite
-     * @returns {Object|null} Rent info object or null if tenant has no valid move_in_date
+     * @returns {Object|null} { tenant_id, full_name, room_id, total_due, total_paid, pending_balance }
      */
-    calculateRentInfo(tenant, room) {
-        // Validate tenant has a move_in_date / check_in_date
-        const moveInDateStr = tenant.move_in_date || tenant.check_in_date;
-        if (!moveInDateStr) return null;
+    async calculateTenantBalance(tenant) {
+        // Validate tenant has a check_in_date
+        const checkInDateStr = tenant.check_in_date || tenant.move_in_date;
+        if (!checkInDateStr) return null;
 
-        const moveInDate = new Date(moveInDateStr);
-        if (isNaN(moveInDate.getTime())) return null;
+        const checkInDate = new Date(checkInDateStr);
+        if (isNaN(checkInDate.getTime())) return null;
 
-        // Extract the due day from move_in_date
-        const dueDay = moveInDate.getDate();
-
-        // Build the current month's due date
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); // 0-based
 
-        // Handle edge case: month may not have the due day (e.g., Feb 31)
-        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const safeDueDay = Math.min(dueDay, lastDayOfMonth);
+        // Calculate months elapsed between check_in_date and today
+        const monthsElapsed = this.calculateMonthsElapsed(checkInDate, now);
+        if (monthsElapsed < 0) return null;
 
-        const dueDate = new Date(currentYear, currentMonth, safeDueDay);
-
-        // Normalize today to midnight for accurate day comparison
-        const today = new Date(currentYear, currentMonth, now.getDate());
-
-        // Determine status and calculate days
-        let status;
-        let overdueDays = 0;
-        let remainingDays = 0;
-
-        const diffTime = today.getTime() - dueDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) {
-            // Today is the due date
-            status = 'due_today';
-            overdueDays = 0;
-            remainingDays = 0;
-        } else if (diffDays > 0) {
-            // Today is AFTER the due date
-            status = 'overdue';
-            overdueDays = diffDays;
-            remainingDays = 0;
-        } else {
-            // Today is BEFORE the due date
-            status = 'upcoming';
-            overdueDays = 0;
-            remainingDays = Math.abs(diffDays);
-        }
-
-        // Use tenant's monthly_rent as the rent amount
+        // Total Due = months_elapsed * monthly_rent
         const monthlyRent = parseFloat(tenant.monthly_rent) || 0;
+        const totalDue = monthsElapsed * monthlyRent;
 
-        // Build room_name: use room_name if available, fall back to room_number
-        const roomName = room.room_name || room.room_number || 'N/A';
+        // Total Paid = sum of all rent_transactions.amount for this tenant
+        const totalPaid = await this.calculateTotalPaid(tenant.$id);
+
+        // Pending Balance = total_due - total_paid
+        const pendingBalance = totalDue - totalPaid;
 
         return {
             tenant_id: tenant.$id,
-            tenant_name: tenant.full_name || 'Unknown',
-            room_id: room.$id,
-            room_name: roomName,
-            room_number: room.room_number || 'N/A',
-            monthly_rent: monthlyRent,
-            due_date: this.formatDate(dueDate),
-            overdue_days: overdueDays,
-            remaining_days: remainingDays,
-            status: status
+            full_name: tenant.full_name || 'Unknown',
+            room_id: tenant.room_id || '',
+            total_due: Math.round(totalDue * 100) / 100,
+            total_paid: Math.round(totalPaid * 100) / 100,
+            pending_balance: Math.round(pendingBalance * 100) / 100
         };
+    }
+
+    /**
+     * Calculate the number of full calendar months between two dates.
+     *
+     * Example: check_in = March 13, today = May 13 → 2 months
+     * Example: check_in = March 13, today = May 12 → 1 month (not yet a full month)
+     *
+     * @param {Date} checkInDate - The tenant's check-in date
+     * @param {Date} today - The current date
+     * @returns {number} Number of full months elapsed
+     */
+    calculateMonthsElapsed(checkInDate, today) {
+        let months = (today.getFullYear() - checkInDate.getFullYear()) * 12;
+        months += today.getMonth() - checkInDate.getMonth();
+
+        // If today's day-of-month is before check-in day-of-month,
+        // we haven't completed the current month yet
+        if (today.getDate() < checkInDate.getDate()) {
+            months--;
+        }
+
+        return Math.max(0, months);
+    }
+
+    /**
+     * Calculate the total amount paid by a tenant across all rent_transactions.
+     *
+     * @param {string} tenantId - The tenant's document ID
+     * @returns {number} Sum of all payment amounts
+     */
+    async calculateTotalPaid(tenantId) {
+        try {
+            const result = await RentTransactionService.getTransactionsByTenant(tenantId);
+            if (!result.success || !result.data || !result.data.documents) {
+                return 0;
+            }
+
+            const transactions = result.data.documents;
+            let totalPaid = 0;
+
+            for (const txn of transactions) {
+                // Only count transactions with 'paid' or 'partial' status as payments
+                if (txn.payment_status === 'paid' || txn.payment_status === 'partial') {
+                    totalPaid += parseFloat(txn.amount) || 0;
+                }
+            }
+
+            return totalPaid;
+        } catch (error) {
+            console.error(`Error calculating total paid for tenant ${tenantId}:`, error);
+            return 0;
+        }
     }
 
     /**
      * Calculate summary statistics from pending rent data.
-     * 
-     * @param {Array} pendingData - Array of rent info objects
-     * @returns {Object} Summary with counts and total amount
+     *
+     * @param {Array} pendingData - Array of balance info objects
+     * @returns {Object} Summary with totals
      */
     calculateSummary(pendingData) {
-        let dueTodayCount = 0;
-        let upcomingCount = 0;
-        let overdueCount = 0;
-        let totalPendingAmount = 0;
+        let totalDueSum = 0;
+        let totalPaidSum = 0;
+        let totalPendingBalance = 0;
+        let tenantCount = pendingData.length;
 
         pendingData.forEach(item => {
-            totalPendingAmount += item.monthly_rent;
-
-            switch (item.status) {
-                case 'due_today':
-                    dueTodayCount++;
-                    break;
-                case 'upcoming':
-                    upcomingCount++;
-                    break;
-                case 'overdue':
-                    overdueCount++;
-                    break;
-            }
+            totalDueSum += item.total_due;
+            totalPaidSum += item.total_paid;
+            totalPendingBalance += item.pending_balance;
         });
 
         return {
-            due_today: dueTodayCount,
-            upcoming: upcomingCount,
-            overdue: overdueCount,
-            total_pending_amount: totalPendingAmount
+            total_tenants_with_balance: tenantCount,
+            total_due: Math.round(totalDueSum * 100) / 100,
+            total_paid: Math.round(totalPaidSum * 100) / 100,
+            total_pending_balance: Math.round(totalPendingBalance * 100) / 100
         };
-    }
-
-    /**
-     * Format a Date object to YYYY-MM-DD string.
-     * 
-     * @param {Date} date
-     * @returns {string} Formatted date string
-     */
-    formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
     }
 }
 

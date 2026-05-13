@@ -55,19 +55,26 @@ router.get(
             const {
                 room_id,
                 tenant_name,
+                search,
+                payment_status,
                 page,
                 limit
             } = req.query;
 
+            // Support both 'search' (mobile app) and 'tenant_name' (direct API) parameters
+            const searchTerm = search || tenant_name || null;
+
             const result = await moveInDateRentService.getPendingRents({
                 room_id: room_id || null,
-                tenant_name: tenant_name || null,
+                tenant_name: searchTerm,
+                payment_status: payment_status || null,
                 page: page ? parseInt(page) : 1,
                 limit: limit ? parseInt(limit) : 20
             });
 
             if (result.success) {
                 res.status(200).json({
+                    success: true,
                     summary: result.summary,
                     data: result.data,
                     total: result.total,
@@ -90,5 +97,41 @@ router.get(
         }
     }
 );
+
+/**
+ * GET /api/rent/pending/stats
+ *
+ * Get occupied rooms and active tenants counts for summary cards.
+ */
+router.get('/pending/stats', async (req, res) => {
+    try {
+        const RoomService = require('../services/RoomService');
+        const TenantService = require('../services/TenantService');
+
+        const roomsResult = await RoomService.list();
+        const tenantsResult = await TenantService.getTenantsByStatus('active');
+
+        let occupiedRooms = 0;
+        if (roomsResult.success) {
+            occupiedRooms = roomsResult.data.documents.filter(
+                room => room.status === 'occupied'
+            ).length;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                occupied_rooms: occupiedRooms,
+                active_tenants: tenantsResult.success ? tenantsResult.data.total : 0
+            }
+        });
+    } catch (error) {
+        console.error('Error in GET /api/rent/pending/stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch pending rent stats'
+        });
+    }
+});
 
 module.exports = router;

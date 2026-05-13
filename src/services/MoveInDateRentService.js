@@ -11,9 +11,12 @@
  *   5. pending_balance = total_due - total_paid
  *   6. Only include tenants where pending_balance > 0
  *
- * Output: { tenant_id, full_name, room_id, total_due, total_paid, pending_balance }
+ * Output format matches mobile app expectations:
+ *   { tenant_id, tenant_name, room_id, room_number, monthly_rent,
+ *     pending_amount, overdue_days, payment_status, period_month, period_year }
  */
 const TenantService = require('./TenantService');
+const RoomService = require('./RoomService');
 const RentTransactionService = require('./RentTransactionService');
 const { Query } = require('../config/appwrite');
 
@@ -33,6 +36,7 @@ class MoveInDateRentService {
             const {
                 room_id,
                 tenant_name,
+                payment_status,
                 page = 1,
                 limit = 20
             } = filters;
@@ -65,8 +69,11 @@ class MoveInDateRentService {
                 const balanceInfo = await this.calculateTenantBalance(tenant);
                 if (!balanceInfo) continue;
 
-                // Only include tenants with pending_balance > 0
-                if (balanceInfo.pending_balance <= 0) continue;
+                // Only include tenants with pending_amount > 0
+                if (balanceInfo.pending_amount <= 0) continue;
+
+                // Apply payment_status filter
+                if (payment_status && balanceInfo.payment_status !== payment_status) continue;
 
                 pendingData.push(balanceInfo);
             }
@@ -97,9 +104,10 @@ class MoveInDateRentService {
 
     /**
      * Calculate cumulative balance for a single tenant.
+     * Returns data in the format expected by the mobile app.
      *
      * @param {Object} tenant - Tenant document from Appwrite
-     * @returns {Object|null} { tenant_id, full_name, room_id, total_due, total_paid, pending_balance }
+     * @returns {Object|null} { tenant_id, tenant_name, room_id, room_number, monthly_rent, pending_amount, ... }
      */
     async calculateTenantBalance(tenant) {
         // Validate tenant has a check_in_date
@@ -125,13 +133,51 @@ class MoveInDateRentService {
         // Pending Balance = total_due - total_paid
         const pendingBalance = totalDue - totalPaid;
 
+        // Fetch room details to get room_number
+        let roomNumber = '';
+        try {
+            const roomResult = await RoomService.getById(tenant.room_id);
+            if (roomResult.success) {
+                roomNumber = roomResult.data.room_number || '';
+            }
+        } catch (e) {
+            // Room lookup failed, use empty string
+        }
+
+        // Determine current period (month/year) for display
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+
+        // Determine payment status and overdue days
+        // If pending_balance > 0, check if the most recent unpaid period is overdue
+        let paymentStatus = 'pending';
+        let overdueDays = 0;
+
+        // Calculate the due date for the current month (use local date string to avoid UTC offset issues)
+        const dueDate = new Date(currentYear, currentMonth - 1, 1);
+        const dueDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+        const diffTime = now.getTime() - dueDate.getTime();
+        overdueDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+        // If there's a balance and the current month's due date has passed, mark as overdue
+        if (overdueDays > 0 && pendingBalance > 0) {
+            paymentStatus = 'overdue';
+        }
+
         return {
             tenant_id: tenant.$id,
-            full_name: tenant.full_name || 'Unknown',
+            tenant_name: tenant.full_name || 'Unknown',
             room_id: tenant.room_id || '',
+            room_number: roomNumber,
+            monthly_rent: monthlyRent,
+            pending_amount: Math.round(pendingBalance * 100) / 100,
             total_due: Math.round(totalDue * 100) / 100,
             total_paid: Math.round(totalPaid * 100) / 100,
-            pending_balance: Math.round(pendingBalance * 100) / 100
+            overdue_days: overdueDays,
+            payment_status: paymentStatus,
+            rent_due_date: dueDateStr,
+            period_month: currentMonth,
+            period_year: currentYear
         };
     }
 
@@ -190,27 +236,33 @@ class MoveInDateRentService {
 
     /**
      * Calculate summary statistics from pending rent data.
+     * Returns format expected by mobile app summary cards.
      *
      * @param {Array} pendingData - Array of balance info objects
      * @returns {Object} Summary with totals
      */
     calculateSummary(pendingData) {
-        let totalDueSum = 0;
-        let totalPaidSum = 0;
-        let totalPendingBalance = 0;
-        let tenantCount = pendingData.length;
+        let totalPending = 0;
+        let totalOverdue = 0;
+        let pendingCount = 0;
+        let overdueCount = 0;
 
         pendingData.forEach(item => {
-            totalDueSum += item.total_due;
-            totalPaidSum += item.total_paid;
-            totalPendingBalance += item.pending_balance;
+            if (item.payment_status === 'overdue') {
+                totalOverdue += item.pending_amount;
+                overdueCount++;
+            } else {
+                totalPending += item.pending_amount;
+                pendingCount++;
+            }
         });
 
         return {
-            total_tenants_with_balance: tenantCount,
-            total_due: Math.round(totalDueSum * 100) / 100,
-            total_paid: Math.round(totalPaidSum * 100) / 100,
-            total_pending_balance: Math.round(totalPendingBalance * 100) / 100
+            total_pending: Math.round(totalPending * 100) / 100,
+            total_overdue: Math.round(totalOverdue * 100) / 100,
+            pending_count: pendingCount,
+            overdue_count: overdueCount,
+            total_combined: Math.round((totalPending + totalOverdue) * 100) / 100
         };
     }
 }

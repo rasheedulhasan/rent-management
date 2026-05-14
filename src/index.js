@@ -14,6 +14,8 @@ const rentCollectionRoutes = require('./rent-collection/rentCollectionRoutes');
 const rentLedgerRoutes = require('./rent-ledger/rentLedgerRoutes');
 const rentLedgerCycleRoutes = require('./routes/rentLedgerCycleRoutes');
 const pendingRentRoutes = require('./routes/pendingRentRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -111,6 +113,20 @@ if (ENABLE_PENDING_RENT_MODULE) {
 } else {
   console.log('○ Pending Rent Module disabled (ENABLE_PENDING_RENT_MODULE not set or false)');
 }
+
+// =====================
+// Invoices API
+// GET /api/invoices
+// GET /api/invoices/:id
+// =====================
+app.use('/api/invoices', invoiceRoutes);
+
+// =====================
+// Reports API
+// GET /api/reports/summary
+// GET /api/reports/monthly
+// =====================
+app.use('/api/reports', reportRoutes);
 
 // =====================
 // 404 handler (LAST)

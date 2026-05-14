@@ -112,11 +112,13 @@ class RentLedgerCycleService {
                 const rentPeriod = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
 
                 try {
+                    const ledgerUid = `LEDGER-${tenant.$id.substring(0, 8)}-${targetYear}${String(targetMonth).padStart(2, '0')}`;
                     await databases.createDocument(
                         DATABASE_ID,
                         RENT_LEDGER_COLLECTION_ID,
                         ID.unique(),
                         {
+                            ledger_uid: ledgerUid,
                             tenant_id: tenant.$id,
                             tenant_name: tenant.full_name || 'Unknown',
                             room_id: tenant.room_id || '',
@@ -331,11 +333,13 @@ class RentLedgerCycleService {
                 // Create the ledger entry
                 try {
                     const rentPeriod = `${year}-${String(month).padStart(2, '0')}`;
+                    const ledgerUid = `LEDGER-${tenant.$id.substring(0, 8)}-${year}${String(month).padStart(2, '0')}`;
                     await databases.createDocument(
                         DATABASE_ID,
                         RENT_LEDGER_COLLECTION_ID,
                         ID.unique(),
                         {
+                            ledger_uid: ledgerUid,
                             tenant_id: tenant.$id,
                             tenant_name: tenant.full_name || 'Unknown',
                             room_id: tenant.room_id || '',
@@ -485,12 +489,14 @@ class RentLedgerCycleService {
             const status = pendingBalance > 0 ? 'partial' : 'paid';
             const dueDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
             const rentPeriod = `${year}-${String(month).padStart(2, '0')}`;
+            const ledgerUid = `LEDGER-${tenant.$id.substring(0, 8)}-${year}${String(month).padStart(2, '0')}`;
 
             const doc = await databases.createDocument(
                 DATABASE_ID,
                 RENT_LEDGER_COLLECTION_ID,
                 ID.unique(),
                 {
+                    ledger_uid: ledgerUid,
                     tenant_id: tenant.$id,
                     tenant_name: tenant.full_name || 'Unknown',
                     room_id: tenant.room_id || '',

@@ -384,6 +384,15 @@
                     "size": 50,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "billing_day",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": 1,
+                    "max": 31
                 }
             ],
             "indexes": [
@@ -668,6 +677,15 @@
                     "size": 50,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "ledger_id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
                 }
             ],
             "indexes": [
@@ -884,6 +902,15 @@
                     "size": 50,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "ledger_uid",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null,
+                    "encrypt": false
                 }
             ],
             "indexes": [
@@ -907,6 +934,17 @@
                     ],
                     "orders": [
                         "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_unique_ledger",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "ledger_uid"
+                    ],
+                    "orders": [
+                        "asc"
                     ]
                 }
             ]

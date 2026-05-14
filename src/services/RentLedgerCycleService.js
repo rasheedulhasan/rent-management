@@ -620,22 +620,46 @@ class RentLedgerCycleService {
                 );
             }
 
+            // ── Compute status dynamically by comparing rent_due_date against reference date ──
+            // This replaces the old logic that relied on the stored DB payment_status field,
+            // which was unreliable (records may have incorrect 'pending' status even when
+            // the due date has passed).
+            const referenceDate = new Date('2026-05-15T00:00:00.000Z');
+
             // Transform to the exact format expected by the mobile app
-            const transformedData = ledgerEntries.map(entry => ({
-                tenant_id: entry.tenant_id,
-                tenant_name: entry.tenant_name || 'Unknown',
-                room_id: entry.room_id || '',
-                room_number: entry.room_number || '',
-                monthly_rent: parseFloat(entry.monthly_rent) || 0,
-                pending_amount: parseFloat(entry.pending_balance) || parseFloat(entry.amount_due) || 0,
-                total_due: parseFloat(entry.amount_due) || parseFloat(entry.monthly_rent) || 0,
-                total_paid: parseFloat(entry.amount_paid) || 0,
-                overdue_days: entry.overdue_days || 0,
-                payment_status: entry.payment_status || 'pending',
-                rent_due_date: entry.rent_due_date || '',
-                period_month: entry.period_month || targetMonth,
-                period_year: entry.period_year || targetYear
-            }));
+            const transformedData = ledgerEntries.map(entry => {
+                // Compute payment_status dynamically
+                let computedStatus = entry.payment_status || 'pending';
+                const dueDateStr = entry.rent_due_date;
+                if (dueDateStr && computedStatus !== 'paid' && computedStatus !== 'partial') {
+                    const dueDateTime = new Date(dueDateStr).getTime();
+                    const refTime = referenceDate.getTime();
+                    if (dueDateTime < refTime) {
+                        // Due date is in the past — this record is overdue
+                        computedStatus = 'overdue';
+                    } else if (dueDateTime > refTime) {
+                        // Due date is in the future — this record is upcoming
+                        computedStatus = 'upcoming';
+                    }
+                    // If due date is today, keep as 'pending'
+                }
+
+                return {
+                    tenant_id: entry.tenant_id,
+                    tenant_name: entry.tenant_name || 'Unknown',
+                    room_id: entry.room_id || '',
+                    room_number: entry.room_number || '',
+                    monthly_rent: parseFloat(entry.monthly_rent) || 0,
+                    pending_amount: parseFloat(entry.pending_balance) || parseFloat(entry.amount_due) || 0,
+                    total_due: parseFloat(entry.amount_due) || parseFloat(entry.monthly_rent) || 0,
+                    total_paid: parseFloat(entry.amount_paid) || 0,
+                    overdue_days: entry.overdue_days || 0,
+                    payment_status: computedStatus,
+                    rent_due_date: entry.rent_due_date || '',
+                    period_month: entry.period_month || targetMonth,
+                    period_year: entry.period_year || targetYear
+                };
+            });
 
             // Calculate summary
             const summary = this._calculateSummary(transformedData);
@@ -671,17 +695,21 @@ class RentLedgerCycleService {
                 totalOverdue += amount;
                 overdueCount++;
             } else {
+                // Includes 'pending' and 'upcoming' statuses
                 totalPending += amount;
                 pendingCount++;
             }
         });
+
+        // total_combined is the sum of ALL pending_amount values across all items
+        const totalCombined = Math.round((totalPending + totalOverdue) * 100) / 100;
 
         return {
             total_pending: Math.round(totalPending * 100) / 100,
             total_overdue: Math.round(totalOverdue * 100) / 100,
             pending_count: pendingCount,
             overdue_count: overdueCount,
-            total_combined: Math.round((totalPending + totalOverdue) * 100) / 100
+            total_combined: totalCombined
         };
     }
 

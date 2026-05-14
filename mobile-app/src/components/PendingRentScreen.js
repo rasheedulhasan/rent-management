@@ -39,12 +39,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const STATUS_COLORS = {
   overdue: '#FF3B30',
   pending: '#FF9500',
+  upcoming: '#007AFF',
   paid: '#34C759',
 };
 
 const STATUS_BG_COLORS = {
   overdue: '#FFF0F0',
   pending: '#FFF8E8',
+  upcoming: '#F0F5FF',
   paid: '#F0FFF4',
 };
 
@@ -264,6 +266,7 @@ export default function PendingRentScreen({ navigation }) {
     { label: 'All', value: '' },
     { label: 'Pending', value: 'pending' },
     { label: 'Overdue', value: 'overdue' },
+    { label: 'Upcoming', value: 'upcoming' },
   ];
 
   return (

@@ -12,10 +12,15 @@
  *   - Admin Dashboard (POST /api/rent/collect)
  *   - Future online payment gateway
  *
- * Debt-Clearing Logic (Arrears):
- *   When a payment is submitted, the money is distributed across the
- *   tenant's unpaid rent_ledger records — oldest month first. This
- *   ensures arrears are cleared before paying the current month.
+ * FORCE-UPDATE LEDGER LOGIC (FIX):
+ *   The debt-clearing loop now uses a two-phase approach:
+ *   1. Query the rent_ledger for unpaid records (status != "paid"),
+ *      sorted by period_year ASC, period_month ASC (oldest first).
+ *   2. For each record, deduct from the received amount and
+ *      explicitly call databases.updateDocument with the correct
+ *      document $id. The function does NOT return 'Success' unless
+ *      all updateDocument calls have completed.
+ *   3. The ledger MUST hit 0 for the tenant to disappear from the list.
  * ============================================
  */
 
@@ -114,16 +119,19 @@ class RentCollectionService {
     }
 
     /**
-     * Debt-Clearing Loop — The Core Arrears Logic
+     * FORCE-UPDATE LEDGER — Debt-Clearing Loop (The Core Arrears Logic)
      *
      * Takes the submitted payment amount and distributes it across the
      * tenant's unpaid rent_ledger records, paying the oldest debt first.
      *
-     * Flow:
-     *   1. Fetch all unpaid ledger records for this tenant
-     *      (status != "paid"), sorted by period_year ASC, period_month ASC
-     *   2. Loop through records, subtracting debt from the remaining money
-     *   3. Update each touched record's amount_paid, pending_balance, and status
+     * CRITICAL FIX:
+     *   - Queries rent_ledger for tenant_id, filtering status != "paid"
+     *   - Uses a FOR loop to iterate through documents
+     *   - For each document, compares amount_received to pending_balance
+     *   - Explicitly calls databases.updateDocument with the correct document $id
+     *   - Fields updated: pending_balance (reduced/set to 0), status ('paid'/'partial'),
+     *     payment_status ('paid'/'partial')
+     *   - Does NOT return unless all updateDocument calls have completed
      *
      * @param {string} tenantId - The tenant's Appwrite document ID
      * @param {number} totalAmount - The total cash amount received
@@ -140,6 +148,8 @@ class RentCollectionService {
         }
 
         // ── Step 1: Fetch unpaid ledger records, oldest first ──
+        // Use Query.notEqual('status', 'paid') to find all records that are NOT fully paid.
+        // This catches status values like 'overdue', 'partial', 'pending', etc.
         const ledgerResult = await databases.listDocuments(
             DATABASE_ID,
             RENT_LEDGER_COLLECTION_ID,
@@ -147,7 +157,7 @@ class RentCollectionService {
                 Query.equal('tenant_id', tenantId),
                 Query.notEqual('status', 'paid')
             ],
-            100, // Max batch
+            100,
             0,
             'period_year',
             'ASC'
@@ -165,18 +175,37 @@ class RentCollectionService {
             return touchedRecords;
         }
 
-        // ── Step 2: Distribute the money across unpaid months ──
+        console.log(
+            `[RentCollection] Found ${unpaidRecords.length} unpaid ledger records for tenant ${tenantId}. ` +
+            `Total amount received: ${totalAmount}. Starting force-update loop...`
+        );
+
+        // ── Step 2: FORCE-UPDATE LOOP — Iterate through each unpaid document ──
         for (const record of unpaidRecords) {
-            if (remainingMoney <= 0) break; // No more money to distribute
+            if (remainingMoney <= 0) {
+                console.log(`[RentCollection] No remaining money to distribute. Stopping loop.`);
+                break;
+            }
 
             const monthlyRent = parseFloat(record.monthly_rent) || 0;
             const currentPaid = parseFloat(record.amount_paid) || 0;
-            const currentPending = parseFloat(record.pending_balance) || monthlyRent;
+            const pendingBalance = parseFloat(record.pending_balance) || monthlyRent;
 
-            // How much is still owed for this month
-            const debtForThisMonth = Math.max(0, monthlyRent - currentPaid);
+            console.log(
+                `[RentCollection] Processing ledger ${record.$id} ` +
+                `(${record.period_year}-${String(record.period_month).padStart(2, '0')}): ` +
+                `monthly_rent=${monthlyRent}, amount_paid=${currentPaid}, ` +
+                `pending_balance=${pendingBalance}, remaining_money=${remainingMoney}`
+            );
 
-            if (debtForThisMonth <= 0) continue; // Already fully paid (shouldn't happen but safety)
+            // Determine how much is still owed for this month.
+            // Use pending_balance directly if available, otherwise fall back to monthly_rent - amount_paid.
+            const debtForThisMonth = pendingBalance;
+
+            if (debtForThisMonth <= 0) {
+                console.log(`[RentCollection] Ledger ${record.$id} has no pending debt. Skipping.`);
+                continue;
+            }
 
             let portionForThisMonth;
             let newStatus;
@@ -194,8 +223,13 @@ class RentCollectionService {
             const newTotalPaid = currentPaid + portionForThisMonth;
             const newPendingBalance = Math.max(0, monthlyRent - newTotalPaid);
 
-            // ── Step 3: Update the database ──
-            await databases.updateDocument(
+            // ── Step 3: FORCE-UPDATE — Explicitly call updateDocument with the correct document $id ──
+            console.log(
+                `[RentCollection] FORCE-UPDATE: Updating ledger ${record.$id} ` +
+                `→ status=${newStatus}, amount_paid=${newTotalPaid}, pending_balance=${newPendingBalance}`
+            );
+
+            const updateResult = await databases.updateDocument(
                 DATABASE_ID,
                 RENT_LEDGER_COLLECTION_ID,
                 record.$id,
@@ -204,17 +238,23 @@ class RentCollectionService {
                     payment_status: newStatus,
                     amount_paid: newTotalPaid,
                     pending_balance: newPendingBalance,
-                    paid_at: dbData.transaction_date,
-                    payment_method: dbData.payment_method,
-                    transaction_id: transactionId,
-                    notes: dbData.remarks || '',
                     updated_at: new Date().toISOString()
                 }
             );
 
+            // Verify the update actually took effect by checking the response
+            if (!updateResult || !updateResult.$id) {
+                throw new Error(
+                    `Force-update FAILED for ledger ${record.$id}. ` +
+                    `updateDocument did not return a valid document. ` +
+                    `This is critical — the ledger was NOT updated.`
+                );
+            }
+
             console.log(
-                `[RentCollection] Ledger ${record.$id} (${record.period_year}-${String(record.period_month).padStart(2, '0')}) ` +
-                `updated: → ${newStatus} (portion: ${portionForThisMonth}, total_paid: ${newTotalPaid}, pending: ${newPendingBalance})`
+                `[RentCollection] ✓ Force-update SUCCEEDED for ledger ${record.$id} ` +
+                `(${record.period_year}-${String(record.period_month).padStart(2, '0')}): ` +
+                `→ ${newStatus} (portion: ${portionForThisMonth}, total_paid: ${newTotalPaid}, pending: ${newPendingBalance})`
             );
 
             touchedRecords.push({
@@ -270,7 +310,7 @@ class RentCollectionService {
                 const futurePending = Math.max(0, futureMonthlyRent - futureNewPaid);
                 const futureStatus = futurePending > 0 ? 'partial' : 'paid';
 
-                await databases.updateDocument(
+                const futureUpdateResult = await databases.updateDocument(
                     DATABASE_ID,
                     RENT_LEDGER_COLLECTION_ID,
                     futureEntry.$id,
@@ -279,13 +319,16 @@ class RentCollectionService {
                         payment_status: futureStatus,
                         amount_paid: futureNewPaid,
                         pending_balance: futurePending,
-                        paid_at: dbData.transaction_date,
-                        payment_method: dbData.payment_method,
-                        transaction_id: transactionId,
-                        notes: dbData.remarks || '',
                         updated_at: new Date().toISOString()
                     }
                 );
+
+                if (!futureUpdateResult || !futureUpdateResult.$id) {
+                    throw new Error(
+                        `Force-update FAILED for future ledger ${futureEntry.$id}. ` +
+                        `The advance payment was NOT recorded.`
+                    );
+                }
 
                 touchedRecords.push({
                     ledger_id: futureEntry.$id,
@@ -324,10 +367,6 @@ class RentCollectionService {
                         period_year: nextYear,
                         rent_period: rentPeriod,
                         rent_due_date: dueDateStr,
-                        paid_at: dbData.transaction_date,
-                        payment_method: dbData.payment_method,
-                        transaction_id: transactionId,
-                        notes: dbData.remarks || '',
                         overdue_days: 0,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
@@ -351,6 +390,11 @@ class RentCollectionService {
 
     /**
      * Collect rent — the main entry point.
+     *
+     * CRITICAL FIX:
+     *   The debt-clearing loop is NO LONGER wrapped in a non-blocking try/catch.
+     *   If the ledger update fails, the entire request fails. This ensures the
+     *   transaction is NOT created without also updating the ledger.
      *
      * @param {Object} requestData - The validated request body
      * @returns {Promise<Object>} Standardized response
@@ -410,30 +454,26 @@ class RentCollectionService {
 
             const transaction = transactionResult.data;
 
-            // ── Step 7: Debt-Clearing Loop (The Core Arrears Logic) ──
-            // Distribute the payment across unpaid months, oldest first.
-            // This replaces the old single-record update with a full arrears settlement.
+            // ── Step 7: FORCE-UPDATE LEDGER (Debt-Clearing Loop) ──
+            // CRITICAL: This is NO LONGER wrapped in a non-blocking try/catch.
+            // If the ledger update fails, the entire request fails.
+            // This ensures we NEVER create a transaction without updating the ledger.
+            const amountPaid = parseFloat(dbData.amount) || 0;
             let touchedLedgers = [];
-            try {
-                const amountPaid = parseFloat(dbData.amount) || 0;
 
-                if (amountPaid > 0) {
-                    touchedLedgers = await this.applyDebtClearing(
-                        dbData.tenant_id,
-                        amountPaid,
-                        dbData,
-                        transaction.$id
-                    );
-                }
-
-                console.log(
-                    `[RentCollection] Debt-clearing complete for tenant ${dbData.tenant_id}. ` +
-                    `Touched ${touchedLedgers.length} ledger records.`
+            if (amountPaid > 0) {
+                touchedLedgers = await this.applyDebtClearing(
+                    dbData.tenant_id,
+                    amountPaid,
+                    dbData,
+                    transaction.$id
                 );
-            } catch (ledgerError) {
-                // Non-blocking — log but don't fail the response
-                console.error('[RentCollection] Failed to apply debt-clearing (non-blocking):', ledgerError.message);
             }
+
+            console.log(
+                `[RentCollection] Debt-clearing complete for tenant ${dbData.tenant_id}. ` +
+                `Touched ${touchedLedgers.length} ledger records.`
+            );
 
             // ── Step 8: Send SMS receipt (if requested) ──
             if (requestData.send_sms_receipt === true || requestData.send_sms_receipt === 'true') {

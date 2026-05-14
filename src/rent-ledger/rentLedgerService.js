@@ -103,15 +103,36 @@ class RentLedgerService {
             return touchedRecords;
         }
 
-        // ── Step 2: Distribute the money across unpaid months ──
+        console.log(
+            `[RentLedgerService] Found ${unpaidRecords.length} unpaid ledger records for tenant ${tenantId}. ` +
+            `Total amount received: ${totalAmount}. Starting force-update loop...`
+        );
+
+        // ── Step 2: FORCE-UPDATE LOOP — Iterate through each unpaid document ──
         for (const record of unpaidRecords) {
-            if (remainingMoney <= 0) break;
+            if (remainingMoney <= 0) {
+                console.log(`[RentLedgerService] No remaining money to distribute. Stopping loop.`);
+                break;
+            }
 
             const monthlyRent = parseFloat(record.monthly_rent) || 0;
             const currentPaid = parseFloat(record.amount_paid) || 0;
-            const debtForThisMonth = Math.max(0, monthlyRent - currentPaid);
+            const pendingBalance = parseFloat(record.pending_balance) || monthlyRent;
 
-            if (debtForThisMonth <= 0) continue;
+            console.log(
+                `[RentLedgerService] Processing ledger ${record.$id} ` +
+                `(${record.period_year}-${String(record.period_month).padStart(2, '0')}): ` +
+                `monthly_rent=${monthlyRent}, amount_paid=${currentPaid}, ` +
+                `pending_balance=${pendingBalance}, remaining_money=${remainingMoney}`
+            );
+
+            // Use pending_balance directly as the debt for this month
+            const debtForThisMonth = pendingBalance;
+
+            if (debtForThisMonth <= 0) {
+                console.log(`[RentLedgerService] Ledger ${record.$id} has no pending debt. Skipping.`);
+                continue;
+            }
 
             let portionForThisMonth;
             let newStatus;
@@ -127,8 +148,13 @@ class RentLedgerService {
             const newTotalPaid = currentPaid + portionForThisMonth;
             const newPendingBalance = Math.max(0, monthlyRent - newTotalPaid);
 
-            // ── Step 3: Update the database ──
-            await databases.updateDocument(
+            // ── Step 3: FORCE-UPDATE — Explicitly call updateDocument with the correct document $id ──
+            console.log(
+                `[RentLedgerService] FORCE-UPDATE: Updating ledger ${record.$id} ` +
+                `→ status=${newStatus}, amount_paid=${newTotalPaid}, pending_balance=${newPendingBalance}`
+            );
+
+            const updateResult = await databases.updateDocument(
                 DATABASE_ID,
                 RENT_LEDGER_COLLECTION_ID,
                 record.$id,
@@ -137,17 +163,23 @@ class RentLedgerService {
                     payment_status: newStatus,
                     amount_paid: newTotalPaid,
                     pending_balance: newPendingBalance,
-                    paid_at: dbData.transaction_date,
-                    payment_method: dbData.payment_method,
-                    transaction_id: transactionId,
-                    notes: dbData.remarks || '',
                     updated_at: new Date().toISOString()
                 }
             );
 
+            // Verify the update actually took effect by checking the response
+            if (!updateResult || !updateResult.$id) {
+                throw new Error(
+                    `Force-update FAILED for ledger ${record.$id}. ` +
+                    `updateDocument did not return a valid document. ` +
+                    `This is critical — the ledger was NOT updated.`
+                );
+            }
+
             console.log(
-                `[RentLedgerService] Ledger ${record.$id} (${record.period_year}-${String(record.period_month).padStart(2, '0')}) ` +
-                `updated: → ${newStatus} (portion: ${portionForThisMonth}, total_paid: ${newTotalPaid}, pending: ${newPendingBalance})`
+                `[RentLedgerService] ✓ Force-update SUCCEEDED for ledger ${record.$id} ` +
+                `(${record.period_year}-${String(record.period_month).padStart(2, '0')}): ` +
+                `→ ${newStatus} (portion: ${portionForThisMonth}, total_paid: ${newTotalPaid}, pending: ${newPendingBalance})`
             );
 
             touchedRecords.push({
@@ -209,10 +241,6 @@ class RentLedgerService {
                         payment_status: futureStatus,
                         amount_paid: futureNewPaid,
                         pending_balance: futurePending,
-                        paid_at: dbData.transaction_date,
-                        payment_method: dbData.payment_method,
-                        transaction_id: transactionId,
-                        notes: dbData.remarks || '',
                         updated_at: new Date().toISOString()
                     }
                 );
@@ -253,10 +281,6 @@ class RentLedgerService {
                         period_year: nextYear,
                         rent_period: rentPeriod,
                         rent_due_date: dueDateStr,
-                        paid_at: dbData.transaction_date,
-                        payment_method: dbData.payment_method,
-                        transaction_id: transactionId,
-                        notes: dbData.remarks || '',
                         overdue_days: 0,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
@@ -340,33 +364,26 @@ class RentLedgerService {
 
             const transaction = transactionResult.data;
 
-            // ── Step 5: Debt-Clearing Loop (The Core Arrears Logic) ──
-            // Distribute the payment across unpaid months, oldest first.
-            // This replaces the old single-record markAsPaid call.
+            // ── Step 5: FORCE-UPDATE LEDGER (Debt-Clearing Loop) ──
+            // CRITICAL: This is NO LONGER wrapped in a non-blocking try/catch.
+            // If the ledger update fails, the entire request fails.
+            // This ensures we NEVER create a transaction without updating the ledger.
+            const amountPaid = parseFloat(dbData.amount) || 0;
             let touchedLedgers = [];
-            try {
-                const amountPaid = parseFloat(dbData.amount) || 0;
 
-                if (amountPaid > 0) {
-                    touchedLedgers = await this.applyDebtClearing(
-                        tenant.$id,
-                        amountPaid,
-                        dbData,
-                        transaction.$id
-                    );
-                }
-
-                console.log(
-                    `[RentLedgerService] Debt-clearing complete for tenant ${tenant.$id}. ` +
-                    `Touched ${touchedLedgers.length} ledger records.`
-                );
-            } catch (ledgerError) {
-                // Non-blocking — log but don't fail the response
-                console.error(
-                    '[RentLedgerService] Failed to apply debt-clearing:',
-                    ledgerError.message
+            if (amountPaid > 0) {
+                touchedLedgers = await this.applyDebtClearing(
+                    tenant.$id,
+                    amountPaid,
+                    dbData,
+                    transaction.$id
                 );
             }
+
+            console.log(
+                `[RentLedgerService] Debt-clearing complete for tenant ${tenant.$id}. ` +
+                `Touched ${touchedLedgers.length} ledger records.`
+            );
 
             // ── Step 6: Update tenant's last_payment_date ──
             try {

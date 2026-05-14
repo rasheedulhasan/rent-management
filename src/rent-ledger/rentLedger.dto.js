@@ -95,9 +95,14 @@ class RentLedgerDTO {
 
     /**
      * Format the success response.
+     * Updated to include debt-clearing details when ledger records are touched.
+     *
+     * @param {Object} transaction - The created rent_transaction document
+     * @param {Object} tenant - The tenant document
+     * @param {Array} touchedLedgers - Array of ledger records updated by debt-clearing
      */
-    static formatSuccessResponse(transaction, tenant) {
-        return {
+    static formatSuccessResponse(transaction, tenant, touchedLedgers = []) {
+        const response = {
             success: true,
             message: 'Rent payment recorded successfully',
             data: {
@@ -110,6 +115,21 @@ class RentLedgerDTO {
                 remarks: transaction.remarks || ''
             }
         };
+
+        // Include debt-clearing details if ledger records were updated
+        if (touchedLedgers && touchedLedgers.length > 0) {
+            response.data.ledger_updates = touchedLedgers.map(l => ({
+                ledger_id: l.ledger_id,
+                period: `${l.period_year}-${String(l.period_month).padStart(2, '0')}`,
+                status: l.status,
+                amount_paid: l.amount_paid,
+                pending_balance: l.pending_balance,
+                portion_applied: l.portion_applied
+            }));
+            response.data.ledger_records_updated = touchedLedgers.length;
+        }
+
+        return response;
     }
 
     /**

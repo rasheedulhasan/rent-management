@@ -1,13 +1,17 @@
 /**
  * PendingRentService
  * 
- * Queries the rent_ledger collection directly as the single source of truth.
- * Only fetches records where status == 'pending' (or 'overdue').
- * Once a payment is submitted and the ledger status flips to 'paid',
- * the item automatically disappears from this list on next refresh.
+ * ARREARS-BASED PENDING RENT SERVICE
  * 
- * No runtime calculations — the work is done once a month by the
- * monthly cycle job (RentLedgerCycleService.generateMonthlyCycle).
+ * Fetches ALL unpaid rent_ledger records (status != 'paid') across all months,
+ * groups them by tenant_id, and aggregates totals to show accumulated debt (arrears).
+ * 
+ * Key changes from single-month approach:
+ *   - No month/year filter — queries all unpaid records for all time
+ *   - Groups by tenant_id, summing pending_balance, amount_due, amount_paid
+ *   - rent_due_date is set to the OLDEST unpaid record's date (start of debt)
+ *   - overdue_days calculated from that oldest date
+ *   - Sorted so tenants with highest pending_amount / most overdue_days appear first
  */
 
 const { Query, databases, DATABASE_ID, RENT_LEDGER_COLLECTION_ID } = require('../config/appwrite');
@@ -16,12 +20,12 @@ const TenantService = require('./TenantService');
 
 class PendingRentService {
     /**
-     * Get pending rent collection data with filters.
-     * Queries rent_ledger directly — single source of truth.
+     * Get pending rent collection data with arrears aggregation.
+     * 
+     * Queries ALL unpaid rent_ledger records (status != 'paid') across all months,
+     * groups by tenant_id, and aggregates totals.
      * 
      * @param {Object} filters
-     * @param {number} filters.month - Month (1-12), defaults to current
-     * @param {number} filters.year - Year, defaults to current
      * @param {string} filters.room_id - Optional room ID filter
      * @param {string} filters.payment_status - Optional status filter (pending/overdue)
      * @param {string} filters.search - Optional search by tenant name
@@ -32,8 +36,6 @@ class PendingRentService {
     async getPendingRents(filters = {}) {
         try {
             const {
-                month,
-                year,
                 room_id,
                 payment_status,
                 search,
@@ -41,90 +43,116 @@ class PendingRentService {
                 limit = 20
             } = filters;
 
-            const now = new Date();
-            const targetMonth = month ? parseInt(month) : (now.getMonth() + 1);
-            const targetYear = year ? parseInt(year) : now.getFullYear();
             const pageNum = Math.max(1, parseInt(page) || 1);
             const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
 
-            // Build queries for the rent_ledger collection
-            const queries = [
-                Query.equal('period_month', targetMonth),
-                Query.equal('period_year', targetYear)
-            ];
+            // ── Step 1: Fetch ALL unpaid records across all time ──
+            // We need to paginate through ALL results since Appwrite has a 100-doc limit per query.
+            // We'll fetch in batches and aggregate client-side.
+            const allUnpaidRecords = await this._fetchAllUnpaidRecords(room_id, payment_status);
 
-            // Filter by status — only show unpaid records
-            if (payment_status) {
-                // If a specific status is requested (e.g., 'pending' or 'overdue'), filter by it
-                queries.push(Query.equal('payment_status', payment_status));
-            } else {
-                // Default: show both pending and overdue (exclude paid and partial)
-                // Appwrite's notEqual only supports a single value, so we use equal with
-                // an array of the statuses we DO want to include
-                queries.push(Query.equal('payment_status', ['pending', 'overdue']));
-            }
-
-            if (room_id) {
-                queries.push(Query.equal('room_id', room_id));
-            }
-
-            // First, get total count without pagination
-            const countResult = await databases.listDocuments(
-                DATABASE_ID,
-                RENT_LEDGER_COLLECTION_ID,
-                queries,
-                1 // Just need total
-            );
-
-            const totalItems = countResult.total || 0;
-            const totalPages = Math.ceil(totalItems / limitNum) || 1;
-
-            // Now get the actual page with pagination
-            const offset = (pageNum - 1) * limitNum;
-            const dataResult = await databases.listDocuments(
-                DATABASE_ID,
-                RENT_LEDGER_COLLECTION_ID,
-                queries,
-                limitNum,
-                offset
-            );
-
-            let ledgerEntries = dataResult.documents || [];
-
-            // Apply search filter (by tenant name) — client-side filter
+            // ── Step 2: Apply search filter (by tenant name) — client-side ──
+            let filteredRecords = allUnpaidRecords;
             if (search) {
                 const searchLower = search.toLowerCase();
-                ledgerEntries = ledgerEntries.filter(item =>
+                filteredRecords = allUnpaidRecords.filter(item =>
                     (item.tenant_name || '').toLowerCase().includes(searchLower) ||
                     (item.room_number || '').toLowerCase().includes(searchLower)
                 );
             }
 
-            // Transform to the exact format expected by the mobile app
-            // The mobile app expects: tenant_name, monthly_rent, pending_amount,
-            // total_due, overdue_days, payment_status, rent_due_date, room_number
-            const transformedData = ledgerEntries.map(entry => ({
-                tenant_id: entry.tenant_id,
-                tenant_name: entry.tenant_name || 'Unknown',
-                room_id: entry.room_id || '',
-                room_number: entry.room_number || '',
-                monthly_rent: parseFloat(entry.monthly_rent) || 0,
-                pending_amount: parseFloat(entry.pending_balance) || parseFloat(entry.amount_due) || 0,
-                total_due: parseFloat(entry.amount_due) || parseFloat(entry.monthly_rent) || 0,
-                total_paid: parseFloat(entry.amount_paid) || 0,
-                overdue_days: entry.overdue_days || 0,
-                payment_status: entry.payment_status || 'pending',
-                rent_due_date: entry.rent_due_date || '',
-                period_month: entry.period_month || targetMonth,
-                period_year: entry.period_year || targetYear
-            }));
+            // ── Step 3: Group by tenant_id and aggregate ──
+            const tenantArrearsMap = new Map();
 
-            // Calculate summary
-            const summary = this._calculateSummary(transformedData);
+            for (const record of filteredRecords) {
+                const tenantId = record.tenant_id;
+                if (!tenantId) continue;
+
+                if (!tenantArrearsMap.has(tenantId)) {
+                    tenantArrearsMap.set(tenantId, {
+                        tenant_id: tenantId,
+                        tenant_name: record.tenant_name || 'Unknown',
+                        room_id: record.room_id || '',
+                        room_number: record.room_number || '',
+                        monthly_rent: parseFloat(record.monthly_rent) || 0,
+                        pending_amount: 0,
+                        total_due: 0,
+                        total_paid: 0,
+                        oldest_due_date: null, // Track the oldest (earliest) rent_due_date
+                        payment_status: 'pending', // Will be upgraded to 'overdue' if any record is overdue
+                        records_count: 0
+                    });
+                }
+
+                const entry = tenantArrearsMap.get(tenantId);
+                entry.pending_amount += parseFloat(record.pending_balance) || 0;
+                entry.total_due += parseFloat(record.amount_due) || 0;
+                entry.total_paid += parseFloat(record.amount_paid) || 0;
+                entry.records_count++;
+
+                // Track the oldest rent_due_date (earliest date = start of debt)
+                const dueDate = record.rent_due_date;
+                if (dueDate && (!entry.oldest_due_date || new Date(dueDate) < new Date(entry.oldest_due_date))) {
+                    entry.oldest_due_date = dueDate;
+                }
+
+                // If ANY record is overdue, the tenant's overall status is 'overdue'
+                if (record.payment_status === 'overdue' || record.status === 'overdue') {
+                    entry.payment_status = 'overdue';
+                }
+            }
+
+            // ── Step 4: Transform aggregated data into the response format ──
+            const now = new Date();
+            let aggregatedData = [];
+
+            for (const [, entry] of tenantArrearsMap) {
+                // Calculate overdue_days from the oldest unpaid record's due date
+                let overdueDays = 0;
+                if (entry.oldest_due_date) {
+                    const oldestDate = new Date(entry.oldest_due_date);
+                    const diffTime = now.getTime() - oldestDate.getTime();
+                    overdueDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+                }
+
+                aggregatedData.push({
+                    tenant_id: entry.tenant_id,
+                    tenant_name: entry.tenant_name,
+                    room_id: entry.room_id,
+                    room_number: entry.room_number,
+                    monthly_rent: entry.monthly_rent,
+                    pending_amount: Math.round(entry.pending_amount * 100) / 100,
+                    total_due: Math.round(entry.total_due * 100) / 100,
+                    total_paid: Math.round(entry.total_paid * 100) / 100,
+                    overdue_days: overdueDays,
+                    payment_status: entry.payment_status,
+                    rent_due_date: entry.oldest_due_date || '',
+                    arrears_months: entry.records_count // Number of unpaid months contributing to arrears
+                });
+            }
+
+            // ── Step 5: Sort — highest pending_amount first, then most overdue_days ──
+            aggregatedData.sort((a, b) => {
+                // Primary sort: by pending_amount descending
+                if (b.pending_amount !== a.pending_amount) {
+                    return b.pending_amount - a.pending_amount;
+                }
+                // Secondary sort: by overdue_days descending
+                return b.overdue_days - a.overdue_days;
+            });
+
+            // ── Step 6: Apply pagination ──
+            const totalItems = aggregatedData.length;
+            const totalPages = Math.ceil(totalItems / limitNum) || 1;
+            const offset = (pageNum - 1) * limitNum;
+            const paginatedData = aggregatedData.slice(offset, offset + limitNum);
+
+            // ── Step 7: Calculate summary ──
+            const summary = this._calculateSummary(aggregatedData);
 
             return {
                 success: true,
-                data: transformedData,
+                data: paginatedData,
                 summary,
                 total: totalItems,
                 page: pageNum,
@@ -138,7 +166,66 @@ class PendingRentService {
     }
 
     /**
-     * Get summary statistics for pending rents.
+     * Fetch ALL unpaid rent_ledger records across all time.
+     * Appwrite limits queries to 100 documents per call, so we paginate
+     * through all results using cursor-based pagination.
+     * 
+     * @param {string} room_id - Optional room filter
+     * @param {string} payment_status - Optional status filter
+     * @returns {Array} All unpaid ledger records
+     */
+    async _fetchAllUnpaidRecords(room_id, payment_status) {
+        const allRecords = [];
+        let cursor = null;
+        const BATCH_SIZE = 100; // Appwrite max per query
+
+        while (true) {
+            const queries = [];
+
+            // Filter by status — only unpaid records (exclude 'paid')
+            if (payment_status) {
+                // If a specific status is requested (e.g., 'pending' or 'overdue'), filter by it
+                queries.push(Query.equal('payment_status', payment_status));
+            } else {
+                // Default: include pending, overdue, partial — exclude 'paid'
+                // Appwrite's notEqual only supports a single value, so we use equal with
+                // an array of the statuses we DO want to include
+                queries.push(Query.equal('payment_status', ['pending', 'overdue', 'partial']));
+            }
+
+            if (room_id) {
+                queries.push(Query.equal('room_id', room_id));
+            }
+
+            // Cursor-based pagination
+            if (cursor) {
+                queries.push(Query.cursorAfter(cursor));
+            }
+
+            const result = await databases.listDocuments(
+                DATABASE_ID,
+                RENT_LEDGER_COLLECTION_ID,
+                queries,
+                BATCH_SIZE
+            );
+
+            const documents = result.documents || [];
+            if (documents.length === 0) break;
+
+            allRecords.push(...documents);
+
+            // If we got fewer than BATCH_SIZE, we've reached the end
+            if (documents.length < BATCH_SIZE) break;
+
+            // Set cursor to the last document's $id for next batch
+            cursor = documents[documents.length - 1].$id;
+        }
+
+        return allRecords;
+    }
+
+    /**
+     * Get summary statistics for pending rents (arrears).
      * 
      * @param {Object} filters - Same filters as getPendingRents
      * @returns {Object} Summary stats only

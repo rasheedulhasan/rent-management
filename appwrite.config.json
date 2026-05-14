@@ -2,33 +2,6 @@
     "projectId": "69e51bf3000836adc452",
     "projectName": "Rent Collection",
     "endpoint": "https://fra.cloud.appwrite.io/v1",
-    "functions": [
-        {
-            "$id": "rent-payment-state-update",
-            "name": "Rent Payment State Update",
-            "enabled": true,
-            "logging": true,
-            "runtime": "node-22",
-            "buildSpecification": "s-1vcpu-512mb",
-            "runtimeSpecification": "s-1vcpu-512mb",
-            "deploymentRetention": 7,
-            "scopes": [
-                "documents.read",
-                "documents.write",
-                "databases.read",
-                "databases.write"
-            ],
-            "events": [
-                "databases.69e5580f00087e980ef3.collections.rent_transactions.documents.create"
-            ],
-            "schedule": "",
-            "timeout": 30,
-            "entrypoint": "src/main.js",
-            "commands": "npm install",
-            "ignore": "node_modules\n.tmp",
-            "path": "functions/rent-payment-state-update"
-        }
-    ],
     "settings": {
         "services": {
             "account": true,
@@ -71,6 +44,33 @@
             }
         }
     },
+    "functions": [
+        {
+            "$id": "rent-payment-state-update",
+            "name": "Rent Payment State Update",
+            "enabled": true,
+            "logging": true,
+            "runtime": "node-22",
+            "buildSpecification": "s-1vcpu-512mb",
+            "runtimeSpecification": "s-1vcpu-512mb",
+            "deploymentRetention": 7,
+            "scopes": [
+                "documents.read",
+                "documents.write",
+                "databases.read",
+                "databases.write"
+            ],
+            "events": [
+                "databases.69e5580f00087e980ef3.collections.rent_transactions.documents.create"
+            ],
+            "schedule": "",
+            "timeout": 30,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "ignore": "node_modules\n.tmp",
+            "path": "functions/rent-payment-state-update"
+        }
+    ],
     "tablesDB": [
         {
             "$id": "69e5580f00087e980ef3",
@@ -751,42 +751,16 @@
                     "encrypt": false
                 },
                 {
-                    "key": "status",
+                    "key": "tenant_name",
                     "type": "string",
                     "required": true,
                     "array": false,
-                    "size": 20,
-                    "default": "pending",
+                    "size": 255,
+                    "default": null,
                     "encrypt": false
                 },
                 {
-                    "key": "amount_due",
-                    "type": "double",
-                    "required": true,
-                    "array": false,
-                    "default": null,
-                    "min": 0,
-                    "max": 1.7976931348623157e+308
-                },
-                {
-                    "key": "amount_paid",
-                    "type": "double",
-                    "required": false,
-                    "array": false,
-                    "default": 0,
-                    "min": 0,
-                    "max": 1.7976931348623157e+308
-                },
-                {
-                    "key": "paid_at",
-                    "type": "datetime",
-                    "required": false,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                },
-                {
-                    "key": "payment_method",
+                    "key": "room_number",
                     "type": "string",
                     "required": false,
                     "array": false,
@@ -795,53 +769,145 @@
                     "encrypt": false
                 },
                 {
-                    "key": "transaction_id",
-                    "type": "string",
-                    "required": false,
+                    "key": "monthly_rent",
+                    "type": "double",
+                    "required": true,
                     "array": false,
-                    "size": 36,
+                    "default": null,
+                    "min": -1.7976931348623157e+308,
+                    "max": 1.7976931348623157e+308
+                },
+                {
+                    "key": "expected_rent",
+                    "type": "double",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -1.7976931348623157e+308,
+                    "max": 1.7976931348623157e+308
+                },
+                {
+                    "key": "amount_due",
+                    "type": "double",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -1.7976931348623157e+308,
+                    "max": 1.7976931348623157e+308
+                },
+                {
+                    "key": "amount_paid",
+                    "type": "double",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -1.7976931348623157e+308,
+                    "max": 1.7976931348623157e+308
+                },
+                {
+                    "key": "pending_balance",
+                    "type": "double",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -1.7976931348623157e+308,
+                    "max": 1.7976931348623157e+308
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
                     "default": null,
                     "encrypt": false
                 },
                 {
-                    "key": "notes",
+                    "key": "payment_status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "period_month",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "period_year",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "rent_due_date",
                     "type": "string",
                     "required": false,
                     "array": false,
-                    "size": 500,
-                    "default": "",
+                    "size": 50,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "overdue_days",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "created_at",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 50,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "updated_at",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 50,
+                    "default": null,
                     "encrypt": false
                 }
             ],
             "indexes": [
                 {
-                    "key": "idx_ledger_status",
+                    "key": "payment_status_idx",
                     "type": "key",
                     "status": "available",
                     "columns": [
-                        "status"
+                        "payment_status"
                     ],
-                    "orders": []
+                    "orders": [
+                        "ASC"
+                    ]
                 },
                 {
-                    "key": "idx_ledger_tenant_period",
+                    "key": "room_id_idx",
                     "type": "key",
                     "status": "available",
                     "columns": [
-                        "tenant_id",
-                        "rent_period"
+                        "room_id"
                     ],
-                    "orders": []
-                },
-                {
-                    "key": "idx_ledger_room_period",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "room_id",
-                        "rent_period"
-                    ],
-                    "orders": []
+                    "orders": [
+                        "ASC"
+                    ]
                 }
             ]
         }

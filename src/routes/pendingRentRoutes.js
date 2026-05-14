@@ -4,8 +4,9 @@
  * ISOLATED ROUTES - Does NOT modify existing routes or APIs.
  * All operations are READ-ONLY.
  * 
- * GET /api/rent/pending - Get pending rent collection data
+ * GET /api/rent/pending - Get pending rent collection data (arrears-based)
  */
+
 const express = require('express');
 const router = express.Router();
 const pendingRentService = require('../services/PendingRentService');
@@ -13,13 +14,15 @@ const pendingRentService = require('../services/PendingRentService');
 /**
  * GET /api/rent/pending
  * 
- * Get pending rent collection data with virtual calculations.
- * Supports filters: month, year, room_id, payment_status, search, page, limit
+ * Get pending rent collection data with arrears aggregation.
+ * Fetches ALL unpaid records across all months, groups by tenant,
+ * and returns cumulative totals (arrears).
+ * 
+ * Supports filters: room_id, payment_status, search, page, limit
  * 
  * Examples:
  *   /api/rent/pending
  *   /api/rent/pending?payment_status=overdue
- *   /api/rent/pending?month=5&year=2026
  *   /api/rent/pending?room_id=abc123
  *   /api/rent/pending?search=Ahmed
  *   /api/rent/pending?page=1&limit=10
@@ -27,8 +30,6 @@ const pendingRentService = require('../services/PendingRentService');
 router.get('/pending', async (req, res) => {
     try {
         const {
-            month,
-            year,
             room_id,
             payment_status,
             search,
@@ -37,8 +38,6 @@ router.get('/pending', async (req, res) => {
         } = req.query;
 
         const result = await pendingRentService.getPendingRents({
-            month,
-            year,
             room_id,
             payment_status,
             search,
@@ -74,16 +73,11 @@ router.get('/pending', async (req, res) => {
 /**
  * GET /api/rent/pending/summary
  * 
- * Get only summary statistics for pending rents.
+ * Get only summary statistics for pending rents (arrears).
  */
 router.get('/pending/summary', async (req, res) => {
     try {
-        const { month, year } = req.query;
-
-        const result = await pendingRentService.getPendingRentSummary({
-            month,
-            year
-        });
+        const result = await pendingRentService.getPendingRentSummary({});
 
         if (result.success) {
             res.status(200).json({

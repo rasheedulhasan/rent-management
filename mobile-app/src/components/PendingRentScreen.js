@@ -194,6 +194,13 @@ export default function PendingRentScreen({ navigation }) {
             {item.payment_status}
           </Text>
         </View>
+        {item.arrears_months > 1 && (
+          <View style={[styles.badge, { backgroundColor: '#FFF0F0', marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }]}>
+            <Text style={{ color: '#FF3B30', fontSize: 11, fontWeight: '700' }}>
+              {item.arrears_months}mo
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.cardBody}>
@@ -202,14 +209,22 @@ export default function PendingRentScreen({ navigation }) {
           <Text style={styles.cardValue}>{formatCurrency(item.monthly_rent)}</Text>
         </View>
         <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Due Date</Text>
-          <Text style={styles.cardValue}>{formatDate(item.rent_due_date)}</Text>
+          <Text style={styles.cardLabel}>Total Due</Text>
+          <Text style={styles.cardValue}>{formatCurrency(item.total_due)}</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Total Paid</Text>
+          <Text style={styles.cardValue}>{formatCurrency(item.total_paid)}</Text>
         </View>
         <View style={styles.cardRow}>
           <Text style={styles.cardLabel}>Pending Amount</Text>
           <Text style={[styles.cardValue, styles.pendingAmount]}>
             {formatCurrency(item.pending_amount)}
           </Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Debt Since</Text>
+          <Text style={styles.cardValue}>{formatDate(item.rent_due_date)}</Text>
         </View>
         {item.overdue_days > 0 && (
           <View style={styles.cardRow}>
@@ -230,7 +245,7 @@ export default function PendingRentScreen({ navigation }) {
       <Text style={styles.emptySubtitle}>
         {statusFilter
           ? `No ${statusFilter} payments found`
-          : 'All tenants have paid their rent for this period'}
+          : 'All tenants are up to date — no arrears'}
       </Text>
     </View>
   );
@@ -263,7 +278,7 @@ export default function PendingRentScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pending Rent Collection</Text>
+        <Text style={styles.headerTitle}>Rent Arrears</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -328,7 +343,7 @@ export default function PendingRentScreen({ navigation }) {
         {/* Results Count */}
         <View style={styles.resultsInfo}>
           <Text style={styles.resultsText}>
-            {total} pending item{total !== 1 ? 's' : ''}
+            {total} tenant{total !== 1 ? 's' : ''} in arrears
           </Text>
         </View>
 
@@ -344,7 +359,7 @@ export default function PendingRentScreen({ navigation }) {
           /* Data List */
           <View style={styles.listContainer}>
             {data.map((item, index) => (
-              <View key={`${item.tenant_id}-${item.period_month}-${item.period_year}-${index}`}>
+              <View key={`${item.tenant_id}-${index}`}>
                 {renderItem({ item })}
               </View>
             ))}

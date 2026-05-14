@@ -301,18 +301,18 @@ class PendingRentService {
 
         pendingData.forEach(item => {
             const amount = parseFloat(item.pending_amount) || 0;
+            // total_pending is the sum of ALL items (Upcoming + Overdue)
+            totalPending += amount;
+            pendingCount++;
+
             if (item.payment_status === 'overdue') {
                 totalOverdue += amount;
                 overdueCount++;
-            } else {
-                // Includes 'pending' and 'upcoming' statuses
-                totalPending += amount;
-                pendingCount++;
             }
         });
 
         // total_combined is the sum of ALL pending_amount values across all items
-        const totalCombined = Math.round((totalPending + totalOverdue) * 100) / 100;
+        const totalCombined = Math.round(totalPending * 100) / 100;
 
         return {
             total_pending: Math.round(totalPending * 100) / 100,

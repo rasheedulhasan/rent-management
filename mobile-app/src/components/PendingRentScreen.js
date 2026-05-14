@@ -184,6 +184,16 @@ export default function PendingRentScreen({ navigation }) {
     </View>
   );
 
+  const getStatusLabel = (status) => {
+    const labels = {
+      overdue: 'Overdue',
+      pending: 'Pending',
+      upcoming: 'Upcoming',
+      paid: 'Paid',
+    };
+    return labels[status] || status;
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -193,7 +203,7 @@ export default function PendingRentScreen({ navigation }) {
         </View>
         <View style={getStatusStyle(item.payment_status)}>
           <Text style={getStatusTextStyle(item.payment_status)}>
-            {item.payment_status}
+            {getStatusLabel(item.payment_status)}
           </Text>
         </View>
         {item.arrears_months > 1 && (

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import NetworkStatusBanner from './src/components/NetworkStatusBanner';
 import SyncStatus from './src/components/SyncStatus';
@@ -26,45 +26,11 @@ import AuthService from './src/services/authService';
 
 const Stack = createStackNavigator();
 
-export default function App() {
-  const [showTestScreen, setShowTestScreen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
+// Home Screen Component (Main App) - extracted outside App for stable component reference
+const HomeScreen = ({ user, onLogout, onShowTest }) => {
+  const navigation = useNavigation();
 
-  useEffect(() => {
-    checkAuthentication();
-  }, []);
-
-  const checkAuthentication = async () => {
-    try {
-      const authenticated = await AuthService.isAuthenticated();
-      if (authenticated) {
-        const currentUser = await AuthService.getCurrentUser();
-        setUser(currentUser);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error('Error checking authentication:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLoginSuccess = async () => {
-    const currentUser = await AuthService.getCurrentUser();
-    setUser(currentUser);
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = async () => {
-    await AuthService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
-  };
-
-  // Home Screen Component (Main App)
-  const HomeScreen = ({ navigation }) => (
+  return (
     <ScrollView style={styles.content}>
       <View style={styles.header}>
         <View style={styles.userHeader}>
@@ -74,7 +40,7 @@ export default function App() {
           </View>
           <TouchableOpacity
             style={styles.logoutButton}
-            onPress={handleLogout}
+            onPress={onLogout}
           >
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
@@ -121,27 +87,65 @@ export default function App() {
       </View>
       <TouchableOpacity
         style={styles.testButton}
-        onPress={() => setShowTestScreen(true)}
+        onPress={onShowTest}
       >
         <Text style={styles.testButtonText}>🧪 Test Offline Features</Text>
       </TouchableOpacity>
     </ScrollView>
   );
+};
 
-  const TestScreen = () => (
-    <View style={styles.testContainer}>
-      <View style={styles.testHeader}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setShowTestScreen(false)}
-        >
-          <Text style={styles.backButtonText}>← Back to App</Text>
-        </TouchableOpacity>
-        <Text style={styles.testTitle}>Offline Functionality Tests</Text>
-      </View>
-      <OfflineTest />
+const TestScreen = ({ onBack }) => (
+  <View style={styles.testContainer}>
+    <View style={styles.testHeader}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={onBack}
+      >
+        <Text style={styles.backButtonText}>← Back to App</Text>
+      </TouchableOpacity>
+      <Text style={styles.testTitle}>Offline Functionality Tests</Text>
     </View>
-  );
+    <OfflineTest />
+  </View>
+);
+
+export default function App() {
+  const [showTestScreen, setShowTestScreen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
+
+  const checkAuthentication = async () => {
+    try {
+      const authenticated = await AuthService.isAuthenticated();
+      if (authenticated) {
+        const currentUser = await AuthService.getCurrentUser();
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = async () => {
+    const currentUser = await AuthService.getCurrentUser();
+    setUser(currentUser);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    await AuthService.logout();
+    setIsAuthenticated(false);
+    setUser(null);
+  };
 
   // Loading screen
   if (isLoading) {
@@ -173,7 +177,7 @@ export default function App() {
             <StatusBar barStyle="dark-content" />
             <NetworkStatusBanner />
             {showTestScreen ? (
-              <TestScreen />
+              <TestScreen onBack={() => setShowTestScreen(false)} />
             ) : (
               <NavigationContainer>
                 <Stack.Navigator
@@ -181,7 +185,15 @@ export default function App() {
                     headerShown: false,
                   }}
                 >
-                  <Stack.Screen name="Home" component={HomeScreen} />
+                  <Stack.Screen name="Home">
+                    {() => (
+                      <HomeScreen
+                        user={user}
+                        onLogout={handleLogout}
+                        onShowTest={() => setShowTestScreen(true)}
+                      />
+                    )}
+                  </Stack.Screen>
                   <Stack.Screen name="NewTenantBooking" component={NewTenantBookingScreen} />
                   <Stack.Screen name="AdvancePayment" component={AdvancePaymentScreen} />
                   <Stack.Screen name="PendingRent" component={PendingRentScreen} />

@@ -2,18 +2,20 @@
  * ============================================
  * Tenant Booking Service
  * ============================================
- * 
+ *
  * Business logic for adding a tenant room booking.
- * 
+ *
  * Flow:
  *   1. Validate input
  *   2. Verify room exists and is vacant
  *   3. Create tenant record
- *   4. Update room status to 'occupied'
- *   5. Return success response
+ *   4. Create initial rent ledger entry for the current month
+ *   5. Update room status to 'occupied'
+ *   6. Return success response
  * ============================================
  */
 
+const { ID, databases, DATABASE_ID, RENT_LEDGER_COLLECTION_ID } = require('../config/appwrite');
 const TenantService = require('../services/TenantService');
 const RoomService = require('../services/RoomService');
 const TenantBookingDTO = require('./tenantBooking.dto');
@@ -39,7 +41,7 @@ class TenantBookingService {
 
     /**
      * Book a tenant into a room.
-     * 
+     *
      * @param {Object} requestData - Validated booking data
      * @returns {Promise<Object>} Standardized response
      */
@@ -79,7 +81,55 @@ class TenantBookingService {
 
             const tenant = tenantResult.data;
 
-            // ── Step 4: Update room status to 'occupied' ──
+            // ── Step 4: Create initial rent ledger entry for the current month ──
+            // This ensures the tenant appears in the "Pending Rent" list immediately.
+            const now = new Date();
+            const periodMonth = now.getMonth() + 1; // 1-based (Jan=1)
+            const periodYear = now.getFullYear();
+            const monthlyRent = parseFloat(tenant.monthly_rent) || 0;
+            const ledgerUid = `${tenant.$id}_${String(periodMonth).padStart(2, '0')}_${periodYear}`;
+
+            try {
+                const ledgerEntry = await databases.createDocument(
+                    DATABASE_ID,
+                    RENT_LEDGER_COLLECTION_ID,
+                    ID.unique(),
+                    {
+                        tenant_id: tenant.$id,
+                        tenant_name: tenant.full_name || '',
+                        room_id: tenant.room_id || '',
+                        room_number: roomCheck.room?.room_number || '',
+                        monthly_rent: monthlyRent,
+                        expected_rent: monthlyRent,
+                        amount_due: monthlyRent,
+                        amount_paid: 0,
+                        pending_balance: monthlyRent,
+                        status: 'pending',
+                        payment_status: 'pending',
+                        period_month: periodMonth,
+                        period_year: periodYear,
+                        rent_period: `${periodYear}-${String(periodMonth).padStart(2, '0')}`,
+                        rent_due_date: `${periodYear}-${String(periodMonth).padStart(2, '0')}-01`,
+                        overdue_days: 0,
+                        ledger_uid: ledgerUid,
+                        created_at: now.toISOString(),
+                        updated_at: now.toISOString()
+                    }
+                );
+
+                console.log(
+                    `[TenantBooking] Ledger entry created for tenant ${tenant.$id}: ` +
+                    `${ledgerUid} (${ledgerEntry.$id})`
+                );
+            } catch (ledgerError) {
+                // Log but don't fail — tenant was already created
+                console.error(
+                    '[TenantBooking] Failed to create initial ledger entry:',
+                    ledgerError.message
+                );
+            }
+
+            // ── Step 5: Update room status to 'occupied' ──
             const roomUpdateResult = await RoomService.updateRoomStatus(
                 requestData.room_id,
                 'occupied'
@@ -93,7 +143,7 @@ class TenantBookingService {
                 );
             }
 
-            // ── Step 5: Return success response ──
+            // ── Step 6: Return success response ──
             return {
                 success: true,
                 statusCode: 201,

@@ -108,6 +108,10 @@ class TenantBookingDTO {
      * Sanitize and prepare data for DB insertion.
      */
     static prepareForDb(data) {
+        // Derive billing_day from check_in_date (day of month)
+        const checkInDate = new Date(data.check_in_date);
+        const billingDay = checkInDate.getUTCDate();
+
         return {
             room_id: data.room_id.trim(),
             full_name: data.full_name.trim(),
@@ -119,6 +123,7 @@ class TenantBookingDTO {
             check_out_date: data.check_out_date || null,
             monthly_rent: parseFloat(data.monthly_rent),
             security_deposit: data.security_deposit ? parseFloat(data.security_deposit) : 0,
+            billing_day: billingDay,
             notes: (data.notes || '').trim(),
             status: data.status || 'active'
         };

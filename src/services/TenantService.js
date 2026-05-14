@@ -14,6 +14,12 @@ class TenantService extends BaseService {
             }
         }
 
+        // Derive billing_day from check_in_date (day of month)
+        const checkInDate = new Date(tenantData.check_in_date);
+        const billingDay = !isNaN(checkInDate.getTime())
+            ? checkInDate.getUTCDate()
+            : (tenantData.billing_day || 1);
+
         const data = {
             room_id: tenantData.room_id,
             full_name: tenantData.full_name,
@@ -25,6 +31,7 @@ class TenantService extends BaseService {
             check_out_date: tenantData.check_out_date || null,
             monthly_rent: parseFloat(tenantData.monthly_rent),
             security_deposit: tenantData.security_deposit ? parseFloat(tenantData.security_deposit) : 0,
+            billing_day: billingDay,
             status: tenantData.status || 'active',
             notes: tenantData.notes || ''
         };

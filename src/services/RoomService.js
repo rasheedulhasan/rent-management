@@ -61,10 +61,7 @@ class RoomService extends BaseService {
             return { success: false, error: 'Invalid status value' };
         }
 
-        return await this.update(roomId, {
-            status,
-            updatedAt: new Date().toISOString()
-        });
+        return await this.update(roomId, { status });
     }
 
     /**

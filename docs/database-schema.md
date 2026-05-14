@@ -57,6 +57,7 @@ Stores tenant/customer information.
 | `check_out_date` | datetime | No | Move-out date |
 | `monthly_rent` | double | Yes | Agreed monthly rent |
 | `security_deposit` | double | No | Deposit amount |
+| `billing_day` | integer | Yes | Day of month for rent billing (1-31), derived from check_in_date |
 | `status` | string(50) | Yes | `active`/`inactive`/`moved_out` |
 | `notes` | string(1000) | No | Additional notes |
 

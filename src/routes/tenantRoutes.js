@@ -228,6 +228,61 @@ router.get('/:id/with-transactions', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/tenants/:id/details
+ * 
+ * Fetch a single tenant's full enriched details for the Tenant Detail View.
+ * Returns tenant profile, room info, building name, lease summary,
+ * financial health (outstanding balance), and recent rent ledger history.
+ * 
+ * Response shape:
+ * {
+ *   success: true,
+ *   data: {
+ *     tenant: { ...core tenant fields },
+ *     room: { room_number, floor, type } | null,
+ *     building: { name } | null,
+ *     lease: { start_date, end_date, days_remaining, monthly_rent, security_deposit },
+ *     financial: { outstanding_balance, total_pending, total_overdue, next_payment_due_date },
+ *     recent_transactions: [{ ...last 5 ledger entries }],
+ *     status_badge: 'active' | 'overdue' | 'moving_out'
+ *   }
+ * }
+ */
+router.get('/:id/details', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // TODO: Add cross-tenant ownership validation here.
+        // In a multi-tenant system, verify that the requesting user/landlord
+        // has access to this tenant. For example:
+        //   const userId = req.user.id;
+        //   const tenant = await tenantService.getById(id);
+        //   if (!tenant.success || tenant.data.landlord_id !== userId) {
+        //     return res.status(403).json({ success: false, error: 'Forbidden' });
+        //   }
+        
+        const result = await tenantService.getTenantDetails(id);
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data
+            });
+        } else {
+            res.status(result.statusCode || 404).json({
+                success: false,
+                error: result.error || 'Tenant not found'
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch tenant details'
+        });
+    }
+});
+
 // Search tenants
 router.get('/search/:query', async (req, res) => {
     try {

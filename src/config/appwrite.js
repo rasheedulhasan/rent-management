@@ -1,16 +1,28 @@
-const { Client, Databases, ID, Query } = require('node-appwrite');
+'use strict';
+
+/**
+ * Backward-compatible config module.
+ *
+ * The app was built against Appwrite; this module now re-exports a
+ * PostgreSQL-backed equivalent with the SAME named exports and method
+ * signatures, so no service or route needs to change.
+ */
+
 require('dotenv').config();
 
-// Initialize Appwrite client
-const client = new Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-    .setProject(process.env.APPWRITE_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
+const { Query } = require('../db/query');
+const databases = require('../db/databases');
+const { generateId } = require('./db');
 
-const databases = new Databases(client);
+const ID = {
+    unique: () => generateId(),
+    custom: (id) => id
+};
 
-// Database and collection IDs
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || 'rent_collection_db';
+// The shim resolves tables by collection id and ignores databaseId,
+// so this value is only a stable identifier.
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || 'rentpro';
+
 const BUILDINGS_COLLECTION_ID = process.env.APPWRITE_BUILDINGS_COLLECTION_ID || 'buildings';
 const ROOMS_COLLECTION_ID = process.env.APPWRITE_ROOMS_COLLECTION_ID || 'rooms';
 const TENANTS_COLLECTION_ID = process.env.APPWRITE_TENANTS_COLLECTION_ID || 'tenants';
@@ -19,7 +31,7 @@ const RENT_TRANSACTIONS_COLLECTION_ID = process.env.APPWRITE_RENT_TRANSACTIONS_C
 const RENT_LEDGER_COLLECTION_ID = process.env.APPWRITE_RENT_LEDGER_COLLECTION_ID || 'rent_ledger';
 
 module.exports = {
-    client,
+    client: null,
     databases,
     ID,
     Query,

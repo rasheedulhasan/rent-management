@@ -16,6 +16,8 @@ const rentLedgerCycleRoutes = require('./routes/rentLedgerCycleRoutes');
 const pendingRentRoutes = require('./routes/pendingRentRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const scheduler = require('./scheduler');
+const RentLedgerCycleService = require('./services/RentLedgerCycleService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -159,6 +161,14 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API Base URL: http://localhost:${PORT}/api`);
   console.log(`Dashboard: http://localhost:${PORT}/admin-dashboard`);
+
+  // Start the monthly rent rollover scheduler (1st of month, RENT_TZ timezone)
+  scheduler.startScheduler();
+
+  // Self-heal: catch up any months missed while the server was down
+  RentLedgerCycleService.catchUpMissedMonths()
+    .then((r) => console.log('[Startup] Catch-up result:', JSON.stringify(r)))
+    .catch((e) => console.error('[Startup] Catch-up failed:', e.message));
 });
 
 module.exports = app;

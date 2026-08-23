@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'navigation/app_routes.dart';
 import 'providers/tenant_detail_provider.dart';
+import 'providers/tenant_list_provider.dart';
+import 'screens/tenant_list_screen.dart';
 import 'services/api_client.dart';
 
 void main() {
   // Initialize the API client with the backend base URL.
-  // For Android emulator: http://10.0.2.2:3001/api
-  // For iOS simulator:    http://localhost:3001/api
-  // For physical device:  Use your machine's local IP address
+  // Production: https://seashell-app-ydu9s.ondigitalocean.app/api
+  // Override at build time: --dart-define=API_BASE_URL=<url>
   ApiClient.init(
     baseUrl: const String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:3001/api',
+      defaultValue: 'https://seashell-app-ydu9s.ondigitalocean.app/api',
     ),
   );
 
@@ -26,41 +27,16 @@ class RentManagementApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => TenantDetailProvider(),
-        ),
-        // Add other providers here as needed, e.g.:
-        // ChangeNotifierProvider(create: (_) => TenantListProvider()),
-        // ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TenantDetailProvider()),
+        ChangeNotifierProvider(create: (_) => TenantListProvider()),
       ],
       child: MaterialApp(
         title: 'Rent Management',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        // Routes
         initialRoute: '/',
         onGenerateRoute: AppRoutes.generateRoute,
-        // Fallback home — replace with actual home screen
-        home: Scaffold(
-          backgroundColor: const Color(0xFFF5F7FA),
-          appBar: AppBar(
-            title: const Text('Tenants'),
-            backgroundColor: const Color(0xFF1A237E),
-            foregroundColor: Colors.white,
-          ),
-          body: const Center(
-            child: Text(
-              'Tenant list will go here.\n\n'
-              'Navigate to tenant detail:\n'
-              'AppRoutes.navigateToTenantDetail(\n'
-              '  context,\n'
-              '  tenantId: "YOUR_TENANT_ID",\n'
-              ');\n',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ),
-        ),
+        home: const TenantListScreen(),
       ),
     );
   }

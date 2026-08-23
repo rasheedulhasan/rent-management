@@ -3,14 +3,15 @@
  * Rent Ledger Cycle Routes
  * ============================================
  *
- * POST /api/rent-ledger/cycle/generate - Generate monthly ledger entries (idempotent)
- * POST /api/rent-ledger/cycle/run      - Run the full monthly cycle job
+ * POST /api/rent-ledger/cycle/generate - Generate monthly ledger entries (legacy, no carry-forward)
+ * POST /api/rent-ledger/cycle/run      - Run the monthly rollover (carry-forward)
+ * POST /api/rent-ledger/cycle/rollover - Run the monthly rollover (carry-forward) — alias for /run
+ * POST /api/rent-ledger/cycle/catchup  - Catch up missed monthly rollovers
  * GET  /api/rent-ledger/cycle/status   - Check cycle status for a given period
  *
- * These endpoints allow manual triggering of the monthly cycle job
- * (creating pending ledger entries and closing previous month).
- * In production, this should be triggered by a cron job (e.g., node-cron)
- * on the 1st of each month.
+ * In production, the rollover is triggered automatically by src/scheduler.js
+ * (node-cron on the 1st of each month). These endpoints allow manual triggering
+ * and testing.
  * ============================================
  */
 
@@ -21,9 +22,8 @@ const RentLedgerCycleService = require('../services/RentLedgerCycleService');
 /**
  * POST /api/rent-ledger/cycle/generate
  *
- * Generate monthly ledger entries for all active tenants.
- * This is the idempotent cycle initialization — checks if entries already
- * exist for the given month/year before creating them.
+ * Generate monthly ledger entries for all active tenants (legacy, no carry-forward).
+ * Idempotent — checks if entries already exist before creating.
  *
  * Body:
  *   { "month": 5, "year": 2026 }  — required
@@ -68,9 +68,7 @@ router.post('/cycle/generate', async (req, res) => {
 /**
  * POST /api/rent-ledger/cycle/run
  *
- * Run the monthly cycle job manually.
- * Creates pending ledger entries for all active tenants for the specified month/year.
- * Also closes the previous month's pending entries (marks as overdue).
+ * Run the monthly rollover (with carry-forward).
  *
  * Body (optional):
  *   { "month": 5, "year": 2026 }  — defaults to current month/year
@@ -79,7 +77,7 @@ router.post('/cycle/run', async (req, res) => {
     try {
         const { month, year } = req.body || {};
 
-        const result = await RentLedgerCycleService.runMonthlyCycle(
+        const result = await RentLedgerCycleService.processMonthlyRollover(
             month ? parseInt(month) : null,
             year ? parseInt(year) : null
         );
@@ -87,7 +85,7 @@ router.post('/cycle/run', async (req, res) => {
         if (result.success) {
             res.status(200).json({
                 success: true,
-                message: `Monthly cycle completed. Created ${result.data.created} entries, closed ${result.data.closed} overdue records.`,
+                message: `Monthly rollover completed. Created ${result.data.created} entries, rolled over ${result.data.rolled_over}, skipped ${result.data.skipped}.`,
                 data: result.data
             });
         } else {
@@ -106,10 +104,79 @@ router.post('/cycle/run', async (req, res) => {
 });
 
 /**
+ * POST /api/rent-ledger/cycle/rollover
+ *
+ * Run the monthly rollover (with carry-forward) — explicit endpoint.
+ *
+ * Body (optional):
+ *   { "month": 9, "year": 2026 }  — defaults to current month/year
+ */
+router.post('/cycle/rollover', async (req, res) => {
+    try {
+        const { month, year } = req.body || {};
+
+        const result = await RentLedgerCycleService.processMonthlyRollover(
+            month ? parseInt(month) : null,
+            year ? parseInt(year) : null
+        );
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: `Rollover completed. Created ${result.data.created} entries, rolled over ${result.data.rolled_over}, skipped ${result.data.skipped}.`,
+                data: result.data
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error in POST /api/rent-ledger/cycle/rollover:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to run rollover'
+        });
+    }
+});
+
+/**
+ * POST /api/rent-ledger/cycle/catchup
+ *
+ * Catch up any missed monthly rollovers (e.g. server was down on the 1st).
+ * Rolls forward month-by-month from the latest ledger period to the current month.
+ */
+router.post('/cycle/catchup', async (req, res) => {
+    try {
+        const result = await RentLedgerCycleService.catchUpMissedMonths();
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: `Catch-up completed for ${result.data.length} period(s).`,
+                data: result.data
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error in POST /api/rent-ledger/cycle/catchup:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to run catch-up'
+        });
+    }
+});
+
+/**
  * GET /api/rent-ledger/cycle/status
  *
  * Check the status of the rent ledger for a given period.
- * Returns counts of pending, overdue, and paid entries.
+ * Returns counts of pending, overdue, paid, partial, and rolled_over entries.
  *
  * Query params:
  *   month (optional) - defaults to current month
@@ -124,7 +191,7 @@ router.get('/cycle/status', async (req, res) => {
         const year = req.query.year ? parseInt(req.query.year) : now.getFullYear();
 
         // Get counts for each status
-        const [pendingResult, overdueResult, paidResult, partialResult] = await Promise.all([
+        const [pendingResult, overdueResult, paidResult, partialResult, rolledOverResult] = await Promise.all([
             databases.listDocuments(DATABASE_ID, RENT_LEDGER_COLLECTION_ID, [
                 Query.equal('period_month', month),
                 Query.equal('period_year', year),
@@ -144,6 +211,11 @@ router.get('/cycle/status', async (req, res) => {
                 Query.equal('period_month', month),
                 Query.equal('period_year', year),
                 Query.equal('payment_status', 'partial')
+            ], 1),
+            databases.listDocuments(DATABASE_ID, RENT_LEDGER_COLLECTION_ID, [
+                Query.equal('period_month', month),
+                Query.equal('period_year', year),
+                Query.equal('payment_status', 'rolled_over')
             ], 1)
         ]);
 
@@ -156,8 +228,10 @@ router.get('/cycle/status', async (req, res) => {
                 overdue: overdueResult.total || 0,
                 paid: paidResult.total || 0,
                 partial: partialResult.total || 0,
+                rolled_over: rolledOverResult.total || 0,
                 total: (pendingResult.total || 0) + (overdueResult.total || 0) +
-                       (paidResult.total || 0) + (partialResult.total || 0)
+                       (paidResult.total || 0) + (partialResult.total || 0) +
+                       (rolledOverResult.total || 0)
             }
         });
     } catch (error) {

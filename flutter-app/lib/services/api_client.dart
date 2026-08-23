@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 
 /// Singleton API client for communicating with the backend.
@@ -67,24 +66,14 @@ class ApiClient {
   /// The underlying Dio instance for direct use.
   Dio get dio => _dio;
 
-  /// Automatically picks the correct base URL per platform.
+  /// Defaults to the production backend. Override via [init] or the
+  /// `API_BASE_URL` build-time define.
   ///
-  /// Android emulator uses 10.0.2.2 to reach the host machine's localhost.
-  /// iOS simulator and web use localhost directly.
-  ///
-  /// On a physical device, use the machine's local IP address instead,
-  /// passed via [init] or the `API_BASE_URL` environment variable.
+  /// Local development values:
+  ///   - Android emulator: http://10.0.2.2:3001/api
+  ///   - iOS simulator / web: http://localhost:3001/api
   static String get _defaultBaseUrl {
-    // Note: On physical devices, set the base URL explicitly via
-    // ApiClient.init(baseUrl: 'http://<YOUR_IP>:3001/api')
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:3001/api';
-      }
-    } catch (_) {
-      // Platform not available (web or test environment)
-    }
-    return 'http://localhost:3001/api';
+    return 'https://seashell-app-ydu9s.ondigitalocean.app/api';
   }
 
   /// Convenience GET with structured response parsing.

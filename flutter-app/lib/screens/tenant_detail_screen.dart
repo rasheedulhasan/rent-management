@@ -656,7 +656,7 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
     );
   }
 
-  Widget _buildStatChip(String label, String value, Color color) {
+  Widget _buildStatChip(String label, String value, MaterialColor color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
@@ -752,7 +752,7 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
   }
 
   Widget _buildTransactionItem(RentLedgerEntry entry, NumberFormat fmt) {
-    Color? statusColor;
+    MaterialColor? statusColor;
     IconData statusIcon;
     String statusLabel;
 

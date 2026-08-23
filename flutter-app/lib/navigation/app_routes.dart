@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../providers/tenant_detail_provider.dart';
 import '../screens/tenant_detail_screen.dart';
 
 /// Centralized route names for the app.

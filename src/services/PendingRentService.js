@@ -64,11 +64,8 @@ class PendingRentService {
             // ── Step 3: Group by tenant_id and aggregate ──
             const tenantArrearsMap = new Map();
 
-            // Use a fixed reference date for consistent status computation.
-            // In production, this would be new Date() — but for testing against
-            // the known data (May 15, 2026), we use a fixed date so results are
-            // deterministic. Change to new Date() for real-time behavior.
-            const referenceDate = new Date('2026-05-15T00:00:00.000Z');
+            // Use the real current date for status computation.
+            const referenceDate = new Date();
 
             for (const record of filteredRecords) {
                 const tenantId = record.tenant_id;

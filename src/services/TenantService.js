@@ -246,7 +246,7 @@ class TenantService extends BaseService {
                     RENT_LEDGER_COLLECTION_ID,
                     [
                         Query.equal('tenant_id', tenantId),
-                        Query.notEqual('status', 'paid')
+                        Query.equal('status', ['pending', 'overdue', 'partial'])
                     ],
                     100
                 );

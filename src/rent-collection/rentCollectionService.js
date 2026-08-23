@@ -148,14 +148,15 @@ class RentCollectionService {
         }
 
         // ── Step 1: Fetch unpaid ledger records, oldest first ──
-        // Use Query.notEqual('status', 'paid') to find all records that are NOT fully paid.
-        // This catches status values like 'overdue', 'partial', 'pending', etc.
+        // Include only open statuses (pending/overdue/partial). Excludes 'paid'
+        // AND 'rolled_over' — rolled_over balances are already folded into the
+        // current month's entry, so including them would double-count.
         const ledgerResult = await databases.listDocuments(
             DATABASE_ID,
             RENT_LEDGER_COLLECTION_ID,
             [
                 Query.equal('tenant_id', tenantId),
-                Query.notEqual('status', 'paid')
+                Query.equal('status', ['pending', 'overdue', 'partial'])
             ],
             100,
             0,

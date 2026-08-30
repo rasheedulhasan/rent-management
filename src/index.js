@@ -55,6 +55,11 @@ app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(angularPath, 'index.csr.html'));
 });
 
+// Root redirect to dashboard
+app.get('/', (req, res) => {
+  res.redirect('/admin-dashboard/');
+});
+
 // =====================
 // Health check
 // =====================

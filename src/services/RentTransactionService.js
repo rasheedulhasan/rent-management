@@ -2,6 +2,8 @@ const BaseService = require('./BaseService');
 const { RENT_TRANSACTIONS_COLLECTION_ID, Query } = require('../config/appwrite');
 const TenantService = require('./TenantService');
 const RoomService = require('./RoomService');
+const BuildingService = require('./BuildingService');
+const UserService = require('./UserService');
 
 class RentTransactionService extends BaseService {
     constructor() {
@@ -314,6 +316,176 @@ class RentTransactionService extends BaseService {
             };
         } catch (error) {
             console.error('Error getting pending rent list:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Enrich an array of transaction documents with tenant, room, building
+     * and collector names for display in the dashboard/transactions UI.
+     */
+    async _enrichTransactions(transactions) {
+        if (!transactions || transactions.length === 0) return [];
+
+        const enriched = [];
+        for (const transaction of transactions) {
+            try {
+                const tenantResult = await TenantService.getById(transaction.tenant_id);
+                const tenantName = tenantResult.success
+                    ? tenantResult.data.full_name
+                    : 'Unknown Tenant';
+
+                let roomNumber = 'N/A';
+                let buildingName = '';
+                if (transaction.room_id) {
+                    const roomResult = await RoomService.getById(transaction.room_id);
+                    if (roomResult.success) {
+                        roomNumber = roomResult.data.room_number || 'N/A';
+                        if (roomResult.data.building_id) {
+                            const buildingResult = await BuildingService.getById(roomResult.data.building_id);
+                            buildingName = buildingResult.success
+                                ? buildingResult.data.name
+                                : '';
+                        }
+                    }
+                }
+
+                let collectedByName = '';
+                if (transaction.collected_by) {
+                    const userResult = await UserService.getById(transaction.collected_by);
+                    collectedByName = userResult.success
+                        ? userResult.data.full_name
+                        : '';
+                }
+
+                enriched.push({
+                    id: transaction.$id,
+                    tenant_id: transaction.tenant_id,
+                    tenant_name: tenantName,
+                    room_id: transaction.room_id,
+                    room_number: roomNumber,
+                    building_name: buildingName,
+                    amount: transaction.amount,
+                    monthly_rent: transaction.monthly_rent,
+                    payment_status: transaction.payment_status,
+                    collected_by: transaction.collected_by,
+                    collected_by_name: collectedByName,
+                    transaction_date: transaction.transaction_date,
+                    payment_method: transaction.payment_method,
+                    rent_due_date: transaction.rent_due_date,
+                    period_month: transaction.period_month,
+                    period_year: transaction.period_year,
+                    receipt_number: transaction.receipt_number,
+                    remarks: transaction.remarks || ''
+                });
+            } catch (err) {
+                console.error(`Error enriching transaction ${transaction.$id}:`, err.message);
+            }
+        }
+
+        return enriched;
+    }
+
+    /**
+     * Get transactions filtered by optional building, date range,
+     * collector and payment status, enriched for the transactions page.
+     */
+    async getFilteredTransactions({ buildingId = null, startDate = null, endDate = null, collectorId = null, status = null } = {}) {
+        try {
+            const queries = [];
+
+            if (collectorId) queries.push(Query.equal('collected_by', collectorId));
+            if (status) queries.push(Query.equal('payment_status', status));
+            if (startDate) queries.push(Query.greaterThanEqual('transaction_date', startDate));
+            if (endDate) queries.push(Query.lessThanEqual('transaction_date', endDate));
+
+            if (buildingId) {
+                const roomsResult = await RoomService.getRoomsByBuilding(buildingId);
+                if (roomsResult.success && roomsResult.data.documents.length > 0) {
+                    const roomIds = roomsResult.data.documents.map((room) => room.$id);
+                    queries.push(Query.equal('room_id', roomIds));
+                } else {
+                    return { success: true, data: [], total: 0 };
+                }
+            }
+
+            const result = await this.list(queries, 1000, 0, 'transaction_date', 'DESC');
+            if (!result.success) return result;
+
+            const enriched = await this._enrichTransactions(result.data.documents);
+            return { success: true, data: enriched, total: enriched.length };
+        } catch (error) {
+            console.error('Error getting filtered transactions:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get the most recent transactions, enriched for display.
+     */
+    async getRecentTransactions(limit = 10) {
+        try {
+            const result = await this.list([], parseInt(limit), 0, 'transaction_date', 'DESC');
+            if (!result.success) return result;
+
+            const enriched = await this._enrichTransactions(result.data.documents);
+            return { success: true, data: enriched, total: enriched.length };
+        } catch (error) {
+            console.error('Error getting recent transactions:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get daily collected amounts (paid + partial) grouped by date.
+     */
+    async getDailyCollection(startDate = null, endDate = null) {
+        try {
+            const result = await this.list([], 1000, 0, 'transaction_date', 'ASC');
+            if (!result.success) return result;
+
+            const dailyMap = {};
+            result.data.documents.forEach((transaction) => {
+                if (transaction.payment_status !== 'paid' && transaction.payment_status !== 'partial') {
+                    return;
+                }
+                const date = new Date(transaction.transaction_date).toISOString().slice(0, 10);
+                if (!dailyMap[date]) {
+                    dailyMap[date] = { date, amount: 0, transactions: 0 };
+                }
+                dailyMap[date].amount += transaction.amount;
+                dailyMap[date].transactions++;
+            });
+
+            let data = Object.values(dailyMap);
+            if (startDate) data = data.filter((d) => d.date >= startDate.slice(0, 10));
+            if (endDate) data = data.filter((d) => d.date <= endDate.slice(0, 10));
+
+            return { success: true, data };
+        } catch (error) {
+            console.error('Error getting daily collection:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get counts of transactions by payment status.
+     */
+    async getPaymentStatusCounts() {
+        try {
+            const result = await this.list([], 1000);
+            if (!result.success) return result;
+
+            const counts = { paid: 0, pending: 0, partial: 0 };
+            result.data.documents.forEach((transaction) => {
+                if (counts[transaction.payment_status] !== undefined) {
+                    counts[transaction.payment_status]++;
+                }
+            });
+
+            return { success: true, data: counts };
+        } catch (error) {
+            console.error('Error getting payment status counts:', error);
             return { success: false, error: error.message };
         }
     }

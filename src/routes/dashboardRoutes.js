@@ -316,4 +316,115 @@ router.get('/pending-rent', async (req, res) => {
     }
 });
 
+// Get filtered transactions (building, date range, collector, status)
+router.get('/filtered-transactions', async (req, res) => {
+    try {
+        const { buildingId, startDate, endDate, collectorId, status } = req.query;
+        const result = await transactionService.getFilteredTransactions({
+            buildingId,
+            startDate,
+            endDate,
+            collectorId,
+            status
+        });
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data,
+                total: result.total
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching filtered transactions:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch filtered transactions'
+        });
+    }
+});
+
+// Get recent transactions
+router.get('/recent-transactions', async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+        const result = await transactionService.getRecentTransactions(limit);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data,
+                total: result.total
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching recent transactions:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch recent transactions'
+        });
+    }
+});
+
+// Get daily collection data for charts
+router.get('/daily-collection', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const result = await transactionService.getDailyCollection(startDate, endDate);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching daily collection:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch daily collection'
+        });
+    }
+});
+
+// Get payment status distribution for charts
+router.get('/payment-status', async (req, res) => {
+    try {
+        const result = await transactionService.getPaymentStatusCounts();
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: result.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching payment status:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch payment status'
+        });
+    }
+});
+
 module.exports = router;

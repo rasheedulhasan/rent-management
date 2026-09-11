@@ -97,4 +97,22 @@ export class TenantService {
   searchTenants(searchTerm: string): Observable<{ success: boolean; data: Tenant[] }> {
     return this.api.get<{ success: boolean; data: Tenant[] }>('tenants/search', { q: searchTerm });
   }
+
+  // Download the CSV import template (text)
+  getCsvTemplate(): Observable<string> {
+    return this.api.getText('tenants/csv/template');
+  }
+
+  // Export all tenants as CSV (text)
+  getCsvExport(): Observable<string> {
+    return this.api.getText('tenants/csv/export');
+  }
+
+  // Bulk import/update tenants from CSV text
+  importCsv(csv: string): Observable<{ success: boolean; message?: string; data?: any; error?: string }> {
+    return this.api.post<{ success: boolean; message?: string; data?: any; error?: string }>(
+      'tenants/csv/import',
+      { csv }
+    );
+  }
 }

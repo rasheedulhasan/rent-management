@@ -246,14 +246,20 @@
         <mat-icon>send</mat-icon>
         Send Payment Reminders
       </button>
-      <button mat-raised-button class="action-button">
+      <button mat-raised-button class="action-button" (click)="onExport()">
         <mat-icon>download</mat-icon>
-        Export to Excel
+        Export to CSV
       </button>
-      <button mat-raised-button class="action-button">
-        <mat-icon>print</mat-icon>
-        Print Tenant List
+      <button mat-raised-button class="action-button" (click)="onDownloadTemplate()">
+        <mat-icon>description</mat-icon>
+        Download Template
       </button>
+      <button mat-raised-button color="primary" class="action-button"
+              [disabled]="importing" (click)="onUploadClick(fileInput)">
+        <mat-icon>{{ importing ? 'hourglass_empty' : 'upload' }}</mat-icon>
+        {{ importing ? 'Importing…' : 'Upload CSV' }}
+      </button>
+      <input #fileInput type="file" accept=".csv,text/csv" hidden (change)="onFileSelected($event)">
     </div>
   </div>
 </div>

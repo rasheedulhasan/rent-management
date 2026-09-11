@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const tenantService = require('../services/TenantService');
+const tenantCsvService = require('../services/TenantCsvService');
 
 // Get all tenants
 router.get('/', async (req, res) => {
@@ -34,6 +35,70 @@ router.get('/', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch tenants'
+        });
+    }
+});
+
+// ============================================================
+// CSV TEMPLATE + IMPORT (defined before /:id routes)
+// ============================================================
+
+// GET /api/tenants/csv/template - Download the tenant import template
+router.get('/csv/template', (req, res) => {
+    try {
+        const csv = tenantCsvService.getTemplate();
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="tenants-template.csv"');
+        res.status(200).send(csv);
+    } catch (error) {
+        console.error('Error generating tenants CSV template:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate template'
+        });
+    }
+});
+
+// GET /api/tenants/csv/export - Export all tenants as CSV
+router.get('/csv/export', async (req, res) => {
+    try {
+        const csv = await tenantCsvService.exportCsv();
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="tenants.csv"');
+        res.status(200).send(csv);
+    } catch (error) {
+        console.error('Error exporting tenants CSV:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to export tenants'
+        });
+    }
+});
+
+// POST /api/tenants/csv/import - Bulk import/update tenants from CSV
+// Body: { "csv": "<csv text>" }
+router.post('/csv/import', async (req, res) => {
+    try {
+        const { csv } = req.body || {};
+        const result = await tenantCsvService.importCsv(csv);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: `Imported ${result.data.inserted} new, updated ${result.data.updated}, failed ${result.data.failed}.`,
+                data: result.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error importing tenants CSV:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to import CSV'
         });
     }
 });

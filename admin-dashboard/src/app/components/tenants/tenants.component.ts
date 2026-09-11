@@ -61,6 +61,8 @@ export class TenantsComponent implements OnInit {
   pageSizeOptions = [5, 10, 25, 50];
   totalItems = 0;
 
+  importing = false;
+
   statusOptions = [
     { value: 'all', label: 'All Status' },
     { value: 'active', label: 'Active' },
@@ -104,6 +106,89 @@ export class TenantsComponent implements OnInit {
         this.snackBar.open('Failed to load tenants. Please try again.', 'Close', { duration: 5000 });
       }
     });
+  }
+
+  // ── CSV export / template / import ──────────────────────────
+
+  onExport(): void {
+    this.tenantService.getCsvExport().subscribe({
+      next: (csv) => this.downloadBlob(csv, 'tenants.csv'),
+      error: (error) => {
+        console.error('Failed to export tenants:', error);
+        this.snackBar.open('Failed to export tenants', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  onDownloadTemplate(): void {
+    this.tenantService.getCsvTemplate().subscribe({
+      next: (csv) => this.downloadBlob(csv, 'tenants-template.csv'),
+      error: (error) => {
+        console.error('Failed to download template:', error);
+        this.snackBar.open('Failed to download template', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  onUploadClick(fileInput: HTMLInputElement): void {
+    fileInput.click();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const csv = String(reader.result || '');
+      this.importing = true;
+
+      this.tenantService.importCsv(csv).subscribe({
+        next: (res) => {
+          this.importing = false;
+          input.value = '';
+
+          if (res.success) {
+            const d = res.data || {};
+            this.snackBar.open(
+              `Imported: ${d.inserted || 0} added, ${d.updated || 0} updated, ${d.failed || 0} failed`,
+              'Close',
+              { duration: 6000 }
+            );
+            if (d.errors && d.errors.length > 0) {
+              console.warn('CSV import row errors:', d.errors);
+            }
+            this.loadTenants();
+          } else {
+            this.snackBar.open(res.error || 'Import failed', 'Close', { duration: 6000 });
+          }
+        },
+        error: (error) => {
+          this.importing = false;
+          input.value = '';
+          console.error('CSV import failed:', error);
+          this.snackBar.open('Import failed. Please check the file format.', 'Close', { duration: 6000 });
+        }
+      });
+    };
+
+    reader.onerror = () => {
+      this.snackBar.open('Could not read the file', 'Close', { duration: 4000 });
+    };
+
+    reader.readAsText(file);
+  }
+
+  private downloadBlob(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   private normalizeTenant(appwriteTenant: any): TenantWithRentStatus {

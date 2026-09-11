@@ -295,7 +295,7 @@ const CollectionForm = () => {
   };
 
   const formatCurrency = (value) => {
-    return `$${parseFloat(value || 0).toFixed(2)}`;
+    return `AED ${parseFloat(value || 0).toFixed(2)}`;
   };
 
   if (loading) {
@@ -398,7 +398,7 @@ const CollectionForm = () => {
         <View style={styles.field}>
           <Text style={styles.label}>Amount *</Text>
           <View style={styles.amountContainer}>
-            <Text style={styles.currencySymbol}>$</Text>
+            <Text style={styles.currencySymbol}>AED</Text>
             <TextInput
               style={[styles.input, styles.amountInput]}
               value={amount}

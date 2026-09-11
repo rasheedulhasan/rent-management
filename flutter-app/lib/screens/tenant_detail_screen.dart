@@ -139,7 +139,7 @@ class _TenantDetailScreenState extends State<TenantDetailScreen> {
   // Detail View — The main scrollable body
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildDetailView(BuildContext context, TenantDetailData data) {
-    final currencyFormat = NumberFormat.currency(symbol: 'KSh ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(symbol: 'AED ', decimalDigits: 0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),

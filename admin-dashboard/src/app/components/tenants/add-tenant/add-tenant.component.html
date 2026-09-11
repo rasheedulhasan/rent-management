@@ -14,10 +14,16 @@
       <form #tenantForm="ngForm" class="tenant-form">
         <div class="form-row">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Room ID</mat-label>
-            <input matInput [(ngModel)]="tenantData.room_id" name="room_id" required>
+            <mat-label>Room</mat-label>
+            <mat-select [(ngModel)]="tenantData.room_id" name="room_id" required [disabled]="roomsLoading">
+              <mat-option *ngFor="let room of availableRooms" [value]="room.id">
+                {{ roomLabel(room) }}
+              </mat-option>
+            </mat-select>
             <mat-icon matSuffix>meeting_room</mat-icon>
-            <mat-error *ngIf="!tenantData.room_id?.trim()">Room ID is required</mat-error>
+            <mat-error *ngIf="!tenantData.room_id">Room is required</mat-error>
+            <mat-hint *ngIf="roomsLoading">Loading available rooms…</mat-hint>
+            <mat-hint *ngIf="!roomsLoading && availableRooms.length === 0">No available rooms</mat-hint>
           </mat-form-field>
         </div>
 
@@ -84,7 +90,7 @@
 
         <div class="form-row">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Monthly Rent (USD)</mat-label>
+            <mat-label>Monthly Rent (AED)</mat-label>
             <input matInput type="number" [(ngModel)]="tenantData.monthly_rent" name="monthly_rent" required min="0" step="0.01">
             <mat-icon matSuffix>attach_money</mat-icon>
             <mat-error *ngIf="!tenantData.monthly_rent || tenantData.monthly_rent <= 0">Monthly rent must be greater than 0</mat-error>
@@ -93,7 +99,7 @@
 
         <div class="form-row">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Security Deposit (USD)</mat-label>
+            <mat-label>Security Deposit (AED)</mat-label>
             <input matInput type="number" [(ngModel)]="tenantData.security_deposit" name="security_deposit" min="0" step="0.01">
             <mat-icon matSuffix>security</mat-icon>
           </mat-form-field>

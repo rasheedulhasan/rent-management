@@ -13,6 +13,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TenantService, CreateTenantDto, Tenant } from '../../../services/tenant.service';
+import { RoomService, Room } from '../../../services/room.service';
 
 @Component({
   selector: 'app-add-tenant',
@@ -35,7 +36,7 @@ import { TenantService, CreateTenantDto, Tenant } from '../../../services/tenant
   templateUrl: './add-tenant.component.html',
   styleUrl: './add-tenant.component.scss'
 })
-export class AddTenantComponent {
+export class AddTenantComponent implements OnInit {
   tenantData: Partial<CreateTenantDto> = {
     room_id: '',
     full_name: '',
@@ -61,8 +62,12 @@ export class AddTenantComponent {
   isEditMode = false;
   tenantId: string | null = null;
 
+  availableRooms: Room[] = [];
+  roomsLoading = false;
+
   constructor(
     private tenantService: TenantService,
+    private roomService: RoomService,
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar
@@ -76,6 +81,42 @@ export class AddTenantComponent {
         this.populateForm(state.tenant);
       }
     }
+  }
+
+  ngOnInit(): void {
+    this.loadAvailableRooms();
+  }
+
+  private loadAvailableRooms(): void {
+    this.roomsLoading = true;
+    this.roomService.getAvailableRooms().subscribe({
+      next: (rooms) => {
+        this.availableRooms = rooms;
+        this.roomsLoading = false;
+
+        // In edit mode, ensure the tenant's current room is selectable even if
+        // it is not vacant (e.g. still occupied by this same tenant).
+        if (this.isEditMode && this.tenantData.room_id &&
+            !rooms.some(r => r.id === this.tenantData.room_id)) {
+          this.roomService.getRoomById(this.tenantData.room_id).subscribe({
+            next: (room) => { this.availableRooms = [room, ...this.availableRooms]; },
+            error: () => { /* keep the vacant list as-is */ }
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load available rooms:', error);
+        this.roomsLoading = false;
+        this.snackBar.open('Failed to load available rooms', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  roomLabel(room: Room): string {
+    const parts = [`Room ${room.room_number}`];
+    if (room.building_name) parts.push(room.building_name);
+    if (room.monthly_rent) parts.push(this.formatCurrency(room.monthly_rent));
+    return parts.join('  •  ');
   }
 
   private populateForm(tenant: Tenant): void {
@@ -164,7 +205,9 @@ export class AddTenantComponent {
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'AED',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
   }
 }

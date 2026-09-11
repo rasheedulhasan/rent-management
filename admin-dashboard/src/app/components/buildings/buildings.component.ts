@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatMenuModule } from '@angular/material/menu';
 import { Building, BuildingService } from '../../services/building.service';
+import { RoomService } from '../../services/room.service';
 
 @Component({
   selector: 'app-buildings',
@@ -51,6 +52,7 @@ export class BuildingsComponent implements OnInit {
   pageIndex = 0;
   pageSizeOptions = [5, 10, 25, 50];
   totalItems = 0;
+  totalRoomCount = 0;
 
   statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -60,12 +62,24 @@ export class BuildingsComponent implements OnInit {
 
   constructor(
     private buildingService: BuildingService,
+    private roomService: RoomService,
     private router: Router,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.loadBuildings();
+    this.loadRoomCount();
+  }
+
+  loadRoomCount(): void {
+    this.roomService.getRoomCount().subscribe({
+      next: (count) => { this.totalRoomCount = count; },
+      error: (error) => {
+        console.error('Failed to load room count:', error);
+        this.totalRoomCount = 0;
+      }
+    });
   }
 
   loadBuildings(): void {
@@ -168,6 +182,7 @@ export class BuildingsComponent implements OnInit {
   }
 
   getTotalRooms(): number {
-    return this.dataSource.reduce((sum, b) => sum + b.total_rooms, 0);
+    // Actual number of room records — not the building's declared total_rooms capacity.
+    return this.totalRoomCount;
   }
 }

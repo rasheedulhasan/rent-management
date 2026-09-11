@@ -28,6 +28,14 @@ export class ApiService {
       .pipe(catchError(this.handleError));
   }
 
+  // Generic GET request returning plain text (e.g. CSV)
+  getText(endpoint: string, params?: any): Observable<string> {
+    return this.http.get(`${this.apiUrl}/${endpoint}`, {
+      params: this.createParams(params),
+      responseType: 'text'
+    }).pipe(catchError(this.handleError));
+  }
+
   // Generic PUT request
   put<T>(endpoint: string, data: any): Observable<T> {
     return this.http.put<T>(`${this.apiUrl}/${endpoint}`, data)

@@ -70,7 +70,7 @@
       </span>
       <span class="stat-item">
         <mat-icon>payments</mat-icon>
-        Total: {{ getFilteredTotal() | currency }}
+        Total: {{ formatCurrency(getFilteredTotal()) }}
       </span>
     </div>
   </mat-card>
@@ -108,7 +108,7 @@
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
           <td mat-cell *matCellDef="let transaction">
             <div class="amount-cell">
-              <span class="amount-value">{{ transaction.amount | currency }}</span>
+              <span class="amount-value">{{ formatCurrency(transaction.amount) }}</span>
               <span class="amount-period">/month</span>
             </div>
           </td>
@@ -209,11 +209,11 @@
       <div class="summary">
         <div class="summary-item">
           <span class="summary-label">Total Collected:</span>
-          <span class="summary-value collected">{{ getTotalCollected() | currency }}</span>
+          <span class="summary-value collected">{{ formatCurrency(getTotalCollected()) }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Total Pending:</span>
-          <span class="summary-value pending">{{ getTotalPending() | currency }}</span>
+          <span class="summary-value pending">{{ formatCurrency(getTotalPending()) }}</span>
         </div>
       </div>
     </div>

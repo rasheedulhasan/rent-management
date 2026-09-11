@@ -94,7 +94,7 @@ class _TenantCard extends StatelessWidget {
       ),
       title: Text(tenant.fullName),
       subtitle: Text(tenant.phoneNumber),
-      trailing: Text('\$${tenant.monthlyRent.toStringAsFixed(0)}/mo'),
+      trailing: Text('AED ${tenant.monthlyRent.toStringAsFixed(0)}/mo'),
       onTap: () =>
           AppRoutes.navigateToTenantDetail(context, tenantId: tenant.id),
     );

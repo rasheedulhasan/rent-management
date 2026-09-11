@@ -120,6 +120,15 @@ export class PendingRentComponent implements OnInit {
     this.criticalCases = this.dataSource.data.filter(item => item.daysOverdue > 60).length;
   }
 
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'AED',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  }
+
   applyFilter(): void {
     let filteredData = this.dataSource.data;
     
@@ -179,13 +188,13 @@ export class PendingRentComponent implements OnInit {
   initiatePayment(tenant: PendingRent): void {
     console.log('Initiating payment for:', tenant.tenantName);
     // Implement payment initiation logic here
-    alert(`Payment initiated for ${tenant.tenantName} - Amount: $${tenant.pendingAmount}`);
+    alert(`Payment initiated for ${tenant.tenantName} - Amount: ${this.formatCurrency(tenant.pendingAmount)}`);
   }
 
   viewTenantDetails(tenant: PendingRent): void {
     console.log('Viewing details for:', tenant.tenantName);
     // Implement view details logic here
-    alert(`Tenant Details:\nName: ${tenant.tenantName}\nRoom: ${tenant.roomNumber}\nPending: $${tenant.pendingAmount}\nOverdue: ${tenant.daysOverdue} days`);
+    alert(`Tenant Details:\nName: ${tenant.tenantName}\nRoom: ${tenant.roomNumber}\nPending: ${this.formatCurrency(tenant.pendingAmount)}\nOverdue: ${tenant.daysOverdue} days`);
   }
 
   exportPendingReport(): void {

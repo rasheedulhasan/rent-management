@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const roomService = require('../services/RoomService');
+const roomCsvService = require('../services/RoomCsvService');
 const { Query } = require('../config/appwrite');
 
 // ============================================================
@@ -11,7 +12,7 @@ const { Query } = require('../config/appwrite');
 // GET /api/rooms/populated - Get all rooms with building name + current tenant
 router.get('/populated', async (req, res) => {
     try {
-        const { building_id, status, floor, limit = 25, offset = 0 } = req.query;
+        const { building_id, status, floor, search, limit = 50, offset = 0 } = req.query;
         const queries = [];
         
         if (building_id) {
@@ -24,6 +25,13 @@ router.get('/populated', async (req, res) => {
         
         if (floor) {
             queries.push(Query.equal('floor', parseInt(floor)));
+        }
+        
+        if (search) {
+            queries.push(Query.or([
+                Query.search('room_number', search),
+                Query.search('type', search)
+            ]));
         }
         
         const result = await roomService.getAllRoomsPopulated(
@@ -114,13 +122,61 @@ router.get('/search/filter', async (req, res) => {
 });
 
 // ============================================================
+// CSV TEMPLATE + IMPORT (defined before /:id routes)
+// ============================================================
+
+// GET /api/rooms/csv/template - Download the room import template
+router.get('/csv/template', (req, res) => {
+    try {
+        const csv = roomCsvService.getTemplate();
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="rooms-template.csv"');
+        res.status(200).send(csv);
+    } catch (error) {
+        console.error('Error generating rooms CSV template:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate template'
+        });
+    }
+});
+
+// POST /api/rooms/csv/import - Bulk import/update rooms from CSV
+// Body: { "csv": "<csv text>" }
+router.post('/csv/import', async (req, res) => {
+    try {
+        const { csv } = req.body || {};
+        const result = await roomCsvService.importCsv(csv);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: `Imported ${result.data.inserted} new, updated ${result.data.updated}, failed ${result.data.failed}.`,
+                data: result.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        console.error('Error importing rooms CSV:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to import CSV'
+        });
+    }
+});
+
+// ============================================================
 // STANDARD CRUD ENDPOINTS
 // ============================================================
 
 // Get all rooms (raw)
 router.get('/', async (req, res) => {
     try {
-        const { building_id, status, floor, limit = 25, offset = 0 } = req.query;
+        const { building_id, status, floor, search, limit = 50, offset = 0 } = req.query;
         const queries = [];
         
         if (building_id) {
@@ -133,6 +189,13 @@ router.get('/', async (req, res) => {
         
         if (floor) {
             queries.push(Query.equal('floor', parseInt(floor)));
+        }
+        
+        if (search) {
+            queries.push(Query.or([
+                Query.search('room_number', search),
+                Query.search('type', search)
+            ]));
         }
         
         const result = await roomService.list(queries, parseInt(limit), parseInt(offset));

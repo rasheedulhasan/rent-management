@@ -11,6 +11,7 @@ const UsersComponent = () => import('./components/users/users.component').then(m
 const LoginComponent = () => import('./components/login/login.component').then(m => m.LoginComponent);
 const PendingRentComponent = () => import('./components/pending-rent/pending-rent.component').then(m => m.PendingRentComponent);
 const TransactionsComponent = () => import('./components/transactions/transactions.component').then(m => m.TransactionsComponent);
+const RoomsComponent = () => import('./components/rooms/rooms.component').then(m => m.RoomsComponent);
 
 // Form pages (separate routes instead of modals)
 const AddBuildingComponent = () => import('./components/buildings/add-building/add-building.component').then(m => m.AddBuildingComponent);
@@ -76,6 +77,13 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { title: 'Add Building', role: 'admin' },
     title: 'Add Building - Rent Management'
+  },
+  {
+    path: 'rooms',
+    loadComponent: RoomsComponent,
+    canActivate: [AuthGuard],
+    data: { title: 'Rooms', icon: 'meeting_room', role: 'admin' },
+    title: 'Rooms - Rent Management'
   },
   {
     path: 'users',

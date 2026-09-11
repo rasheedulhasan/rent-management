@@ -10,7 +10,7 @@
         <mat-icon class="stat-icon">money_off</mat-icon>
         <div class="stat-details">
           <h3>Total Pending</h3>
-          <p class="stat-value">{{ totalPendingAmount | currency }}</p>
+          <p class="stat-value">{{ formatCurrency(totalPendingAmount) }}</p>
         </div>
       </div>
     </mat-card>
@@ -129,8 +129,8 @@
           <th mat-header-cell *matHeaderCellDef>Pending Amount</th>
           <td mat-cell *matCellDef="let item">
             <div class="amount-cell">
-              <span class="amount-value">{{ item.pendingAmount | currency }}</span>
-              <span class="amount-total">of {{ item.totalDue | currency }}</span>
+              <span class="amount-value">{{ formatCurrency(item.pendingAmount) }}</span>
+              <span class="amount-total">of {{ formatCurrency(item.totalDue) }}</span>
             </div>
           </td>
         </ng-container>

@@ -1,0 +1,90 @@
+<div class="login-page">
+  <div class="login-container">
+    <mat-card class="login-card">
+      <div class="login-header">
+        <div class="logo">
+          <mat-icon class="logo-icon">apartment</mat-icon>
+          <span class="logo-text">Rent Management</span>
+        </div>
+        <h1 class="title">Admin Dashboard</h1>
+        <p class="subtitle">Sign in to manage your properties</p>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Error Message -->
+        @if (errorMessage) {
+          <div class="error-message">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+        }
+
+        <!-- Username Field -->
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Username</mat-label>
+          <input
+            matInput
+            type="text"
+            [(ngModel)]="username"
+            name="username"
+            placeholder="Enter your username"
+            required
+            autocomplete="username"
+            [disabled]="loading"
+          />
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
+
+        <!-- Password Field -->
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [type]="hidePassword ? 'password' : 'text'"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+            [disabled]="loading"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            mat-icon-button
+            matSuffix
+            (click)="hidePassword = !hidePassword"
+            [attr.aria-label]="'Toggle password visibility'"
+            [attr.aria-pressed]="hidePassword"
+            tabindex="-1"
+          >
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <!-- Submit Button -->
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="login-button"
+          [disabled]="loading || !username.trim() || !password.trim()"
+        >
+          @if (loading) {
+            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+            <span>Signing in...</span>
+          } @else {
+            <ng-container>
+              <mat-icon class="btn-icon">login</mat-icon>
+              <span>Sign In</span>
+            </ng-container>
+          }
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>&copy; 2026 Rent Management System</p>
+      </div>
+    </mat-card>
+  </div>
+</div>

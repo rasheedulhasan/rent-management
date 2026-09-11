@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build:dashboard": "npm --prefix admin-dashboard run build",
+    "build": "npm run build:dashboard",
     "setup-db": "node scripts/setup-database.js",
     "seed-users": "node seed-users.js",
     "seed-buildings": "node seed-buildings.js",

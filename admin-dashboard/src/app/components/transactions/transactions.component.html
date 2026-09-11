@@ -1,0 +1,221 @@
+<div class="transactions-page">
+  <div class="page-header">
+    <h1>Rent Transactions</h1>
+    <p>View and manage all rent payment transactions</p>
+  </div>
+
+  <mat-card class="filters-card">
+    <div class="filters-header">
+      <h3>Filters</h3>
+      <button mat-button color="primary" (click)="resetFilters()">
+        <mat-icon>refresh</mat-icon>
+        Reset Filters
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Search</mat-label>
+          <input matInput (keyup)="applyFilter($event)" placeholder="Search tenant, room, collector...">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+            <mat-option value="all">All Status</mat-option>
+            <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+              {{ status.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <div class="filter-item">
+        <mat-form-field appearance="outline">
+          <mat-label>Payment Method</mat-label>
+          <mat-select [(ngModel)]="paymentMethodFilter" (selectionChange)="applyFilters()">
+            <mat-option value="all">All Methods</mat-option>
+            <mat-option *ngFor="let method of paymentMethodOptions" [value]="method.value">
+              {{ method.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <div class="filter-item date-range">
+        <mat-form-field appearance="outline">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="startPicker" [(ngModel)]="dateRange.start" (dateChange)="applyFilters()">
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="endPicker" [(ngModel)]="dateRange.end" (dateChange)="applyFilters()">
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </div>
+    
+    <div class="filter-stats">
+      <span class="stat-item">
+        <mat-icon>filter_list</mat-icon>
+        Showing {{ dataSource.filteredData.length }} of {{ totalTransactions }} transactions
+      </span>
+      <span class="stat-item">
+        <mat-icon>payments</mat-icon>
+        Total: {{ getFilteredTotal() | currency }}
+      </span>
+    </div>
+  </mat-card>
+
+  <mat-card class="transactions-card">
+    <div class="table-container">
+      <table mat-table [dataSource]="dataSource" matSort class="transactions-table">
+        <!-- Tenant Name Column -->
+        <ng-container matColumnDef="tenantName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tenant</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="tenant-cell">
+              <div class="tenant-avatar">{{ transaction.tenantName.charAt(0) }}</div>
+              <div class="tenant-info">
+                <strong>{{ transaction.tenantName }}</strong>
+                <span class="tenant-email">{{ transaction.tenantEmail }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Room Number Column -->
+        <ng-container matColumnDef="roomNumber">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Room</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="room-cell">
+              <mat-icon class="room-icon">meeting_room</mat-icon>
+              <span>{{ transaction.roomNumber }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Amount Column -->
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="amount-cell">
+              <span class="amount-value">{{ transaction.amount | currency }}</span>
+              <span class="amount-period">/month</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Payment Status Column -->
+        <ng-container matColumnDef="paymentStatus">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let transaction">
+            <span class="status-badge" [class]="'status-' + transaction.paymentStatus">
+              {{ getStatusLabel(transaction.paymentStatus) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Collected By Column -->
+        <ng-container matColumnDef="collectedBy">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Collected By</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="collector-cell">
+              <mat-icon class="collector-icon">person</mat-icon>
+              <span>{{ transaction.collectedBy }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Transaction Date Column -->
+        <ng-container matColumnDef="transactionDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Date & Time</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="date-cell">
+              <div class="date">{{ transaction.transactionDate | date: 'MMM dd, yyyy' }}</div>
+              <div class="time">{{ transaction.transactionDate | date: 'hh:mm a' }}</div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Payment Method Column -->
+        <ng-container matColumnDef="paymentMethod">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Method</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="method-cell">
+              <mat-icon class="method-icon">{{ getPaymentMethodIcon(transaction.paymentMethod) }}</mat-icon>
+              <span>{{ getPaymentMethodLabel(transaction.paymentMethod) }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let transaction">
+            <div class="actions-cell">
+              <button mat-icon-button color="primary" [matMenuTriggerFor]="menu" aria-label="Actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="viewTransactionDetails(transaction)">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                <button mat-menu-item (click)="editTransaction(transaction)" *ngIf="transaction.paymentStatus === 'pending'">
+                  <mat-icon>edit</mat-icon>
+                  Mark as Paid
+                </button>
+                <button mat-menu-item (click)="downloadReceipt(transaction)">
+                  <mat-icon>download</mat-icon>
+                  Download Receipt
+                </button>
+                <button mat-menu-item (click)="sendReminder(transaction)" *ngIf="transaction.paymentStatus === 'pending'">
+                  <mat-icon>notifications</mat-icon>
+                  Send Reminder
+                </button>
+              </mat-menu>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
+
+    <div class="table-footer">
+      <div class="export-actions">
+        <button mat-button (click)="exportToCSV()">
+          <mat-icon>download</mat-icon>
+          Export CSV
+        </button>
+        <button mat-button (click)="exportToPDF()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+      </div>
+      
+      <div class="summary">
+        <div class="summary-item">
+          <span class="summary-label">Total Collected:</span>
+          <span class="summary-value collected">{{ getTotalCollected() | currency }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Pending:</span>
+          <span class="summary-value pending">{{ getTotalPending() | currency }}</span>
+        </div>
+      </div>
+    </div>
+  </mat-card>
+</div>

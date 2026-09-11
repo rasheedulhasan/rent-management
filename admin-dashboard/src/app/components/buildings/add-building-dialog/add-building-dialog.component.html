@@ -1,0 +1,72 @@
+<h2 mat-dialog-title>
+  <mat-icon>{{ data.mode === 'add' ? 'add_business' : 'edit' }}</mat-icon>
+  {{ data.mode === 'add' ? 'Add New Building' : 'Edit Building' }}
+</h2>
+
+<mat-dialog-content>
+  <form #buildingForm="ngForm" class="building-form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Building Name</mat-label>
+        <input matInput [(ngModel)]="buildingData.name" name="name" required>
+        <mat-icon matSuffix>business</mat-icon>
+        <mat-error *ngIf="!buildingData.name?.trim()">Building name is required</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Address</mat-label>
+        <input matInput [(ngModel)]="buildingData.address" name="address" required>
+        <mat-icon matSuffix>location_on</mat-icon>
+        <mat-error *ngIf="!buildingData.address?.trim()">Address is required</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <div class="form-column">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Total Floors</mat-label>
+          <input matInput type="number" [(ngModel)]="buildingData.total_floors" name="total_floors" required min="1" step="1">
+          <mat-icon matSuffix>stairs</mat-icon>
+          <mat-error *ngIf="!buildingData.total_floors || buildingData.total_floors < 1">Must be at least 1</mat-error>
+        </mat-form-field>
+      </div>
+      <div class="form-column">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Total Rooms</mat-label>
+          <input matInput type="number" [(ngModel)]="buildingData.total_rooms" name="total_rooms" required min="0" step="1">
+          <mat-icon matSuffix>meeting_room</mat-icon>
+          <mat-error *ngIf="buildingData.total_rooms === undefined || buildingData.total_rooms < 0">Must be 0 or more</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description (Optional)</mat-label>
+        <textarea matInput [(ngModel)]="buildingData.description" name="description" rows="2"></textarea>
+        <mat-icon matSuffix>description</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="buildingData.status" name="status" required>
+          <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+            {{ status.label }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>flag</mat-icon>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="!isFormValid()">
+    {{ data.mode === 'add' ? 'Add Building' : 'Save Changes' }}
+  </button>
+</mat-dialog-actions>

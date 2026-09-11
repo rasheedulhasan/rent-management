@@ -91,16 +91,70 @@ class TenantService extends BaseService {
             return { success: false, error: 'Invalid status value' };
         }
 
+        // Fetch the tenant first so we know which room to release/occupy.
+        const tenantResult = await this.getById(tenantId);
+        if (!tenantResult.success) {
+            return { success: false, error: 'Tenant not found' };
+        }
+        const tenant = tenantResult.data;
+
         const updateData = {
             status
         };
 
-        // If moving out, set check_out_date
+        // If moving out, set check_out_date; if re-activating, clear it.
         if (status === 'moved_out') {
             updateData.check_out_date = new Date().toISOString();
+        } else if (status === 'active') {
+            updateData.check_out_date = null;
         }
 
-        return await this.update(tenantId, updateData);
+        const result = await this.update(tenantId, updateData);
+        if (!result.success) {
+            return result;
+        }
+
+        // Keep room occupancy in sync with the tenant status.
+        await this._syncRoomOccupancy(tenant.room_id, status);
+
+        return result;
+    }
+
+    /**
+     * Keep room occupancy in sync with tenant status.
+     *   - active      -> mark the room occupied
+     *   - moved_out   -> release the room (vacant) if no other active tenant has it
+     *
+     * @param {string} roomId
+     * @param {string} tenantStatus
+     */
+    async _syncRoomOccupancy(roomId, tenantStatus) {
+        if (!roomId) return;
+
+        try {
+            if (tenantStatus === 'active') {
+                await RoomService.updateRoomStatus(roomId, 'occupied');
+                return;
+            }
+
+            if (tenantStatus === 'moved_out') {
+                // Only release if no OTHER active tenant is still assigned.
+                // (The tenant we just updated is already moved_out, so it is excluded.)
+                const activeResult = await this.list(
+                    [
+                        Query.equal('room_id', roomId),
+                        Query.equal('status', 'active')
+                    ],
+                    1
+                );
+                const stillOccupied = activeResult.success && activeResult.data.total > 0;
+                if (!stillOccupied) {
+                    await RoomService.updateRoomStatus(roomId, 'vacant');
+                }
+            }
+        } catch (error) {
+            console.error('[TenantService] Failed to sync room occupancy:', error.message);
+        }
     }
 
     async getTenantWithTransactions(tenantId) {

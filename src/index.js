@@ -35,9 +35,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // =====================
-// Angular Path
+// Angular Path (serves the compiled Angular build from the dist folder)
+// Rebuild with: npm run build:dashboard
 // =====================
-const angularPath = path.join(__dirname, '../admin-dashboard');
+const angularPath = path.join(__dirname, '../admin-dashboard/dist/admin-dashboard/browser');
 
 // =====================
 // Serve Angular (IMPORTANT)

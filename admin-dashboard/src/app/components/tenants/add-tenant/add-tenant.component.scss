@@ -1,0 +1,62 @@
+.add-tenant-page {
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  .back-button {
+    margin-top: 0.25rem;
+  }
+
+  .header-content {
+    h1 {
+      color: #1a237e;
+      margin: 0 0 0.5rem 0;
+      font-size: 2rem;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: #666;
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+}
+
+.form-card {
+  padding: 1.5rem !important;
+
+  .tenant-form {
+    .form-row {
+      margin-bottom: 1.25rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .full-width {
+      width: 100%;
+    }
+  }
+
+  .form-actions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 0.75rem;
+
+    button {
+      mat-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}

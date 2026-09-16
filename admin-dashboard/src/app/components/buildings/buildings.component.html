@@ -62,13 +62,13 @@
   <!-- Filters Section -->
   <mat-card class="filters-card">
     <div class="filters-row">
-      <mat-form-field appearance="outline" class="search-field">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
         <mat-label>Search buildings</mat-label>
         <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Search by name, address, or description">
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="filter-field">
+      <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
         <mat-label>Status</mat-label>
         <mat-select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
           @for (option of statusOptions; track option.value) {

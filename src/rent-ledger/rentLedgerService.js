@@ -146,7 +146,10 @@ class RentLedgerService {
             }
 
             const newTotalPaid = currentPaid + portionForThisMonth;
-            const newPendingBalance = Math.max(0, monthlyRent - newTotalPaid);
+            // Use the record's ACTUAL debt (which may include carry-forward from a
+            // rolled-over month), not monthly_rent — otherwise a partial payment on
+            // a carried-over month wrongly zeroes the remaining balance.
+            const newPendingBalance = Math.max(0, debtForThisMonth - portionForThisMonth);
 
             // ── Step 3: FORCE-UPDATE — Explicitly call updateDocument with the correct document $id ──
             console.log(

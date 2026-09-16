@@ -48,11 +48,14 @@ app.use('/admin-dashboard', express.static(angularPath));
 // Angular fallback (ONLY ONE, clean version)
 app.get('/admin-dashboard/*', (req, res, next) => {
   if (req.path.includes('.')) return next();
+  // Always revalidate the HTML so a new build (new hashed assets) is picked up.
+  res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(angularPath, 'index.csr.html'));
 });
 
 // Optional root redirect
 app.get('/admin-dashboard', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(angularPath, 'index.csr.html'));
 });
 

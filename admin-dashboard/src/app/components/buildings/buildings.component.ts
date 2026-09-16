@@ -86,7 +86,8 @@ export class BuildingsComponent implements OnInit {
     this.loading = true;
     this.buildingService.getAllBuildings().subscribe({
       next: (buildings) => {
-        this.dataSource = buildings;
+        // API returns Appwrite-style `$id`; normalize so the table + actions work.
+        this.dataSource = buildings.map(b => ({ ...b, id: (b as any).$id || b.id }));
         this.filteredDataSource = [...this.dataSource];
         this.totalItems = this.filteredDataSource.length;
         this.updatePagedData();

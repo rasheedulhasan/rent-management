@@ -150,57 +150,33 @@ class RoomService extends BaseService {
     }
 
     /**
-     * Internal helper: populate building name + current tenant for an array of rooms
+     * Internal helper: populate building name + current tenant for an array of rooms.
+     *
+     * Uses batched lookups instead of one Appwrite query per room. The previous
+     * per-room loop issued N sequential calls (plus one per building) and made
+     * GET /rooms/populated take minutes for a full list.
      */
     async _populateRooms(rooms) {
         if (!rooms || rooms.length === 0) return [];
 
-        // Collect unique building IDs
-        const buildingIds = [...new Set(rooms.map(r => r.building_id))];
-
-        // Fetch all referenced buildings in one batch
+        // Collect unique building IDs (few) and fetch each building once
+        const buildingIds = [...new Set(rooms.map(r => r.building_id).filter(Boolean))];
         const buildingMap = {};
-        try {
-            for (const bId of buildingIds) {
-                try {
-                    const building = await databases.getDocument(
-                        DATABASE_ID,
-                        BUILDINGS_COLLECTION_ID,
-                        bId
-                    );
-                    buildingMap[bId] = building.name || '';
-                } catch (e) {
-                    buildingMap[bId] = '';
-                }
+        for (const bId of buildingIds) {
+            try {
+                const building = await databases.getDocument(
+                    DATABASE_ID,
+                    BUILDINGS_COLLECTION_ID,
+                    bId
+                );
+                buildingMap[bId] = building.name || '';
+            } catch (e) {
+                buildingMap[bId] = '';
             }
-        } catch (error) {
-            console.error('Error fetching buildings for room population:', error);
         }
 
-        // Fetch active tenants for all rooms in one batch
-        const roomIds = rooms.map(r => r.$id);
-        const tenantMap = {};
-        try {
-            for (const roomId of roomIds) {
-                try {
-                    const tenantsResult = await databases.listDocuments(
-                        DATABASE_ID,
-                        TENANTS_COLLECTION_ID,
-                        [
-                            Query.equal('room_id', roomId),
-                            Query.equal('status', 'active')
-                        ]
-                    );
-                    if (tenantsResult.documents && tenantsResult.documents.length > 0) {
-                        tenantMap[roomId] = tenantsResult.documents[0];
-                    }
-                } catch (e) {
-                    // No tenant found for this room
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching tenants for room population:', error);
-        }
+        // Fetch active tenants in batches and map them onto the requested rooms
+        const tenantMap = await this._getActiveTenantsByRoom(rooms.map(r => r.$id));
 
         // Merge data
         return rooms.map(room => ({
@@ -208,6 +184,58 @@ class RoomService extends BaseService {
             building_name: buildingMap[room.building_id] || '',
             current_tenant: tenantMap[room.$id] || null
         }));
+    }
+
+    /**
+     * Internal helper: build a { room_id: tenant } map for the given room IDs.
+     *
+     * Pages through active tenants (Appwrite caps a query at 100 documents)
+     * instead of issuing one query per room, turning O(rooms) network calls
+     * into O(rooms / 100).
+     */
+    async _getActiveTenantsByRoom(roomIds) {
+        const wanted = new Set(roomIds);
+        const tenantMap = {};
+        let cursor = null;
+        const BATCH_SIZE = 100;
+
+        while (true) {
+            const queries = [Query.equal('status', 'active')];
+            if (cursor) {
+                queries.push(Query.cursorAfter(cursor));
+            }
+
+            let result;
+            try {
+                result = await databases.listDocuments(
+                    DATABASE_ID,
+                    TENANTS_COLLECTION_ID,
+                    queries,
+                    BATCH_SIZE
+                );
+            } catch (error) {
+                console.error('Error batch-fetching active tenants:', error);
+                break;
+            }
+
+            const documents = result.documents || [];
+            if (documents.length === 0) break;
+
+            for (const tenant of documents) {
+                if (
+                    tenant.room_id &&
+                    wanted.has(tenant.room_id) &&
+                    !tenantMap[tenant.room_id]
+                ) {
+                    tenantMap[tenant.room_id] = tenant;
+                }
+            }
+
+            if (documents.length < BATCH_SIZE) break;
+            cursor = documents[documents.length - 1].$id;
+        }
+
+        return tenantMap;
     }
 
     async searchRooms(buildingId = null, floor = null, minRent = null, maxRent = null) {

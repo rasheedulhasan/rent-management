@@ -263,20 +263,23 @@ class PendingRentService {
      */
     async getStats() {
         try {
-            const roomsResult = await RoomService.list();
+            // Fetch the full room list — the previous default page size (25)
+            // made occupied_rooms wrong whenever an occupied room fell outside
+            // the first page.
+            const roomsResult = await RoomService.list([], 1000, 0);
             const tenantsResult = await TenantService.getTenantsByStatus('active');
 
-            let occupiedRooms = 0;
-            if (roomsResult.success) {
-                occupiedRooms = roomsResult.data.documents.filter(
-                    room => room.status === 'occupied'
-                ).length;
-            }
+            const rooms = roomsResult.success
+                ? (roomsResult.data.documents || [])
+                : [];
 
             return {
                 success: true,
                 data: {
-                    occupied_rooms: occupiedRooms,
+                    total_rooms: roomsResult.success ? roomsResult.data.total : rooms.length,
+                    occupied_rooms: rooms.filter(
+                        room => room.status === 'occupied'
+                    ).length,
                     active_tenants: tenantsResult.success ? tenantsResult.data.total : 0
                 }
             };

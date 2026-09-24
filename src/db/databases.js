@@ -13,7 +13,7 @@
  * Documents are returned in Appwrite shape ({ $id, $createdAt, $updatedAt, ...attrs }).
  */
 
-const { pool } = require('../config/db');
+const { query } = require('../config/db');
 const { generateId } = require('../config/db');
 const { translateQueries, mapAttribute } = require('./query');
 
@@ -42,7 +42,11 @@ const TABLES = {
         systemTimestampCols: []
     },
     rent_transactions: {
-        columns: ['id', 'tenant_id', 'room_id', 'collected_by', 'amount', 'monthly_rent', 'payment_method', 'payment_status', 'transaction_date', 'rent_due_date', 'period_month', 'period_year', 'partial_payment_reason', 'pending_reason', 'remarks', 'receipt_number', 'ledger_id', 'created_at', 'updated_at'],
+        columns: ['id', 'tenant_id', 'room_id', 'collected_by', 'amount', 'monthly_rent', 'payment_method', 'payment_status', 'transaction_date', 'rent_due_date', 'period_month', 'period_year', 'partial_payment_reason', 'pending_reason', 'remarks', 'receipt_number', 'ledger_id', 'deposit_transaction_id', 'created_at', 'updated_at'],
+        systemTimestampCols: ['created_at', 'updated_at']
+    },
+    tenant_deposit_transactions: {
+        columns: ['id', 'tenant_id', 'amount', 'transaction_type', 'reference_type', 'reference_id', 'description', 'created_by', 'created_at', 'updated_at'],
         systemTimestampCols: ['created_at', 'updated_at']
     }
 };
@@ -103,13 +107,13 @@ async function createDocument(databaseId, collectionId, documentId, data, permis
 
     const placeholders = cols.map((_, i) => '$' + (i + 1)).join(', ');
     const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`;
-    const res = await pool.query(sql, vals);
+    const res = await query(sql, vals);
     return rowToDoc(res.rows[0], table, databaseId, collectionId);
 }
 
 async function getDocument(databaseId, collectionId, documentId) {
     const table = resolveTable(collectionId);
-    const res = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [documentId]);
+    const res = await query(`SELECT * FROM ${table} WHERE id = $1`, [documentId]);
     if (res.rows.length === 0) throw notFound(documentId);
     return rowToDoc(res.rows[0], table, databaseId, collectionId);
 }
@@ -144,14 +148,14 @@ async function updateDocument(databaseId, collectionId, documentId, data, permis
 
     const where = `${addVal(documentId)}`;
     const sql = `UPDATE ${table} SET ${setParts.join(', ')} WHERE id = ${where} RETURNING *`;
-    const res = await pool.query(sql, vals);
+    const res = await query(sql, vals);
     if (res.rows.length === 0) throw notFound(documentId);
     return rowToDoc(res.rows[0], table, databaseId, collectionId);
 }
 
 async function deleteDocument(databaseId, collectionId, documentId) {
     const table = resolveTable(collectionId);
-    await pool.query(`DELETE FROM ${table} WHERE id = $1`, [documentId]);
+    await query(`DELETE FROM ${table} WHERE id = $1`, [documentId]);
 }
 
 async function listDocuments(databaseId, collectionId, queries, limit, offset, orderField, orderType) {
@@ -177,7 +181,7 @@ async function listDocuments(databaseId, collectionId, queries, limit, offset, o
 
     const whereSql = translated.where ? ` WHERE ${translated.where}` : '';
 
-    const countRes = await pool.query(`SELECT count(*) AS total FROM ${table}${whereSql}`, params);
+    const countRes = await query(`SELECT count(*) AS total FROM ${table}${whereSql}`, params);
     const total = parseInt(countRes.rows[0].total, 10);
 
     let selectSql = `SELECT * FROM ${table}${whereSql}${orderSql}`;
@@ -188,7 +192,7 @@ async function listDocuments(databaseId, collectionId, queries, limit, offset, o
         selectSql += ` OFFSET ${effOffset}`;
     }
 
-    const res = await pool.query(selectSql, params);
+    const res = await query(selectSql, params);
     const documents = res.rows.map((r) => rowToDoc(r, table, databaseId, collectionId));
     return { total, documents };
 }

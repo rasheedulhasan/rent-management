@@ -18,7 +18,7 @@
  * ============================================
  */
 
-const ALLOWED_PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque'];
+const ALLOWED_PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque', 'security_deposit'];
 const ALLOWED_PAYMENT_STATUSES = ['paid', 'partial', 'pending'];
 const MAX_STRING_LENGTHS = {
     partial_payment_reason: 500,

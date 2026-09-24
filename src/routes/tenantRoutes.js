@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const tenantService = require('../services/TenantService');
 const tenantCsvService = require('../services/TenantCsvService');
+const depositService = require('../services/DepositService');
 
 // Get all tenants
 router.get('/', async (req, res) => {
@@ -100,6 +101,70 @@ router.post('/csv/import', async (req, res) => {
             success: false,
             error: 'Failed to import CSV'
         });
+    }
+});
+
+// ============================================================
+// SECURITY DEPOSIT LEDGER + MOVE-OUT SETTLEMENT
+// ============================================================
+
+// GET /api/tenants/:id/deposit - deposit statement (received/adjusted/refunded/remaining)
+router.get('/:id/deposit', async (req, res) => {
+    try {
+        const data = await depositService.getStatement(req.params.id, parseInt(req.query.limit) || 100);
+        res.status(200).json({ success: true, data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /api/tenants/:id/deposit - record deposit received
+router.post('/:id/deposit', async (req, res) => {
+    try {
+        const data = await depositService.recordReceived(req.params.id, req.body || {});
+        res.status(201).json({ success: true, message: 'Security deposit recorded.', data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /api/tenants/:id/deposit/adjust - apply deposit against outstanding rent
+router.post('/:id/deposit/adjust', async (req, res) => {
+    try {
+        const data = await depositService.applyToRent(req.params.id, req.body || {});
+        res.status(200).json({ success: true, message: 'Security deposit applied to rent.', data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /api/tenants/:id/deposit/refund - refund the remaining deposit
+router.post('/:id/deposit/refund', async (req, res) => {
+    try {
+        const data = await depositService.refund(req.params.id, req.body || {});
+        res.status(200).json({ success: true, message: 'Security deposit refunded.', data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+});
+
+// GET /api/tenants/:id/move-out/settlement - preview the final settlement
+router.get('/:id/move-out/settlement', async (req, res) => {
+    try {
+        const data = await depositService.previewSettlement(req.params.id, req.query || {});
+        res.status(200).json({ success: true, data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /api/tenants/:id/move-out/settlement - execute the settlement (+ move out)
+router.post('/:id/move-out/settlement', async (req, res) => {
+    try {
+        const data = await depositService.settleAndMoveOut(req.params.id, req.body || {});
+        res.status(200).json({ success: true, message: 'Move-out settled.', data });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, error: error.message });
     }
 });
 

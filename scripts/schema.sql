@@ -26,6 +26,7 @@
 
 BEGIN;
 
+DROP TABLE IF EXISTS tenant_deposit_transactions CASCADE;
 DROP TABLE IF EXISTS rent_transactions CASCADE;
 DROP TABLE IF EXISTS rent_ledger CASCADE;
 DROP TABLE IF EXISTS tenants CASCADE;
@@ -170,6 +171,7 @@ CREATE TABLE rent_transactions (
     remarks                 VARCHAR(1000) NOT NULL DEFAULT '',
     receipt_number          VARCHAR(100)  NOT NULL DEFAULT '',
     ledger_id               VARCHAR(36),
+    deposit_transaction_id  VARCHAR(36),
     created_at              TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at              TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
@@ -178,5 +180,27 @@ CREATE INDEX idx_transactions_period ON rent_transactions (period_year, period_m
 CREATE INDEX idx_transactions_date   ON rent_transactions (transaction_date);
 CREATE INDEX idx_transactions_tenant ON rent_transactions (tenant_id);
 CREATE INDEX idx_transactions_status ON rent_transactions (payment_status);
+
+-- ----------------------------------------------------------------------------
+-- 7. tenant_deposit_transactions
+--    Security deposit ledger. balance = SUM(amount)
+--    (received = +, adjustment = -, refund = -). History is never overwritten.
+-- ----------------------------------------------------------------------------
+CREATE TABLE tenant_deposit_transactions (
+    id               VARCHAR(36)   PRIMARY KEY,
+    tenant_id        VARCHAR(36)   NOT NULL,
+    amount           NUMERIC(12,2) NOT NULL,
+    transaction_type VARCHAR(20)   NOT NULL,
+    reference_type   VARCHAR(50)   NOT NULL DEFAULT '',
+    reference_id     VARCHAR(36)   NOT NULL DEFAULT '',
+    description      VARCHAR(500)  NOT NULL DEFAULT '',
+    created_by       VARCHAR(36)   NOT NULL DEFAULT '',
+    created_at       TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_deposit_txn_tenant ON tenant_deposit_transactions (tenant_id);
+CREATE INDEX idx_deposit_txn_type   ON tenant_deposit_transactions (transaction_type);
+CREATE INDEX idx_deposit_txn_ref    ON tenant_deposit_transactions (reference_type, reference_id);
 
 COMMIT;

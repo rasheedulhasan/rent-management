@@ -35,7 +35,7 @@ class RentTransactionService extends BaseService {
         }
 
         // Validate payment method
-        const validMethods = ['cash', 'online', 'bank_transfer', 'cheque'];
+        const validMethods = ['cash', 'online', 'bank_transfer', 'cheque', 'security_deposit'];
         if (!validMethods.includes(transactionData.payment_method)) {
             return { success: false, error: 'Invalid payment method' };
         }
@@ -60,7 +60,8 @@ class RentTransactionService extends BaseService {
             partial_payment_reason: transactionData.partial_payment_reason || '',
             pending_reason: transactionData.pending_reason || '',
             remarks: transactionData.remarks || '',
-            receipt_number: transactionData.receipt_number || this.generateReceiptNumber()
+            receipt_number: transactionData.receipt_number || this.generateReceiptNumber(),
+            deposit_transaction_id: transactionData.deposit_transaction_id || null
         };
 
         return await this.create(data);

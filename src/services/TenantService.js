@@ -1,5 +1,6 @@
 const BaseService = require('./BaseService');
 const { TENANTS_COLLECTION_ID, RENT_LEDGER_COLLECTION_ID, RENT_TRANSACTIONS_COLLECTION_ID, BUILDINGS_COLLECTION_ID, Query, databases, DATABASE_ID } = require('../config/appwrite');
+const { query, withTransaction } = require('../config/db');
 const RoomService = require('./RoomService');
 
 class TenantService extends BaseService {
@@ -399,6 +400,154 @@ class TenantService extends BaseService {
         } catch (error) {
             console.error('[TenantService] Error in getTenantDetails:', error);
             return { success: false, error: error.message, statusCode: 500 };
+        }
+    }
+    /**
+     * Bulk-edit several tenants in ONE request (mobile multi-select).
+     *
+     * Editable per tenant:
+     *   full_name, phone_number, monthly_rent, billing_day,
+     *   rent_due_date (due date of that tenant's open rent-ledger rows)
+     *
+     * All-or-nothing: every row is validated first; if any row is invalid the
+     * request changes nothing and returns the per-row errors.
+     *
+     * @param {Array<{id, full_name?, phone_number?, monthly_rent?, billing_day?, rent_due_date?}>} updates
+     */
+    async bulkUpdateTenants(updates) {
+        const EDITABLE = ['full_name', 'phone_number', 'monthly_rent', 'billing_day', 'rent_due_date'];
+
+        try {
+            if (!Array.isArray(updates) || updates.length === 0) {
+                return { success: false, statusCode: 400, error: 'tenants must be a non-empty array' };
+            }
+            if (updates.length > 200) {
+                return { success: false, statusCode: 400, error: 'Too many tenants in one request (max 200)' };
+            }
+
+            // ── Step 1: validate every row up-front (nothing is written yet) ──
+            const errors = [];
+            const rows = [];
+
+            updates.forEach((raw, index) => {
+                const row = raw || {};
+                const id = row.id || row.tenant_id || row.$id;
+                if (!id) {
+                    errors.push({ index, id: null, error: 'id is required' });
+                    return;
+                }
+
+                const has = (f) => row[f] !== undefined && row[f] !== null && row[f] !== '';
+                const provided = EDITABLE.filter(has);
+                if (provided.length === 0) {
+                    errors.push({ index, id, error: `No editable field provided (${EDITABLE.join(', ')})` });
+                    return;
+                }
+
+                const changes = {};
+
+                if (has('full_name')) {
+                    const v = String(row.full_name).trim();
+                    if (!v) errors.push({ index, id, error: 'full_name cannot be empty' });
+                    else changes.full_name = v;
+                }
+                if (has('phone_number')) {
+                    const v = String(row.phone_number).trim();
+                    if (!v) errors.push({ index, id, error: 'phone_number cannot be empty' });
+                    else changes.phone_number = v;
+                }
+                if (has('monthly_rent')) {
+                    const v = parseFloat(row.monthly_rent);
+                    if (isNaN(v) || v < 0) errors.push({ index, id, error: 'monthly_rent must be a number >= 0' });
+                    else changes.monthly_rent = v;
+                }
+                if (has('billing_day')) {
+                    const v = parseInt(row.billing_day, 10);
+                    if (isNaN(v) || v < 1 || v > 31) errors.push({ index, id, error: 'billing_day must be between 1 and 31' });
+                    else changes.billing_day = v;
+                }
+                if (has('rent_due_date')) {
+                    const d = new Date(row.rent_due_date);
+                    if (isNaN(d.getTime())) errors.push({ index, id, error: 'rent_due_date must be a valid date (YYYY-MM-DD)' });
+                    else changes.rent_due_date = String(row.rent_due_date).slice(0, 10);
+                }
+
+                rows.push({ index, id, changes });
+            });
+
+            if (errors.length > 0) {
+                return {
+                    success: false,
+                    statusCode: 400,
+                    error: `Validation failed for ${errors.length} tenant(s). Nothing was updated.`,
+                    errors
+                };
+            }
+
+            // ── Step 2: apply everything inside ONE transaction ──
+            return await withTransaction(async () => {
+                const results = [];
+                const nowIso = new Date().toISOString();
+
+                for (const { index, id, changes } of rows) {
+                    const existing = await query(`SELECT id FROM tenants WHERE id = $1`, [id]);
+                    if (existing.rows.length === 0) {
+                        // throws -> whole batch rolls back (all-or-nothing)
+                        const err = new Error(`Tenant not found: ${id}`);
+                        err.statusCode = 400;
+                        throw err;
+                    }
+
+                    const sets = [];
+                    const vals = [];
+                    let n = 1;
+
+                    for (const field of ['full_name', 'phone_number', 'monthly_rent', 'billing_day']) {
+                        if (changes[field] !== undefined) {
+                            sets.push(`${field} = $${n++}`);
+                            vals.push(changes[field]);
+                        }
+                    }
+
+                    if (sets.length > 0) {
+                        sets.push('updated_at = now()');
+                        vals.push(id);
+                        await query(`UPDATE tenants SET ${sets.join(', ')} WHERE id = $${n}`, vals);
+                    }
+
+                    let ledgerRowsUpdated = 0;
+                    if (changes.rent_due_date !== undefined) {
+                        const res = await query(
+                            `UPDATE rent_ledger
+                             SET rent_due_date = $2, updated_at = $3
+                             WHERE tenant_id = $1 AND status IN ('pending','overdue','partial')`,
+                            [id, changes.rent_due_date, nowIso]
+                        );
+                        ledgerRowsUpdated = res.rowCount;
+                    }
+
+                    results.push({
+                        index,
+                        id,
+                        success: true,
+                        updated_fields: Object.keys(changes),
+                        ledger_rows_updated: ledgerRowsUpdated
+                    });
+                }
+
+                return {
+                    success: true,
+                    data: {
+                        requested: rows.length,
+                        updated: results.length,
+                        failed: 0,
+                        results
+                    }
+                };
+            });
+        } catch (error) {
+            console.error('[TenantService] Error in bulkUpdateTenants:', error);
+            return { success: false, statusCode: error.statusCode || 500, error: error.message };
         }
     }
 }

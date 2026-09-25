@@ -168,6 +168,48 @@ router.post('/:id/move-out/settlement', async (req, res) => {
     }
 });
 
+// ============================================================
+// BULK EDIT (mobile multi-select)
+//   POST|PATCH /api/tenants/bulk-update
+//   Body: { "tenants": [ { "id", "full_name?", "phone_number?",
+//                          "monthly_rent?", "billing_day?", "rent_due_date?" } ] }
+//   (a bare array body is also accepted)
+// All-or-nothing: if any row is invalid nothing is updated.
+// ============================================================
+
+const bulkUpdateTenantsHandler = async (req, res) => {
+    try {
+        const payload = Array.isArray(req.body)
+            ? req.body
+            : (req.body && (req.body.tenants || req.body.updates)) || [];
+
+        const result = await tenantService.bulkUpdateTenants(payload);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: `Updated ${result.data.updated} tenant(s).`,
+                data: result.data
+            });
+        } else {
+            res.status(result.statusCode || 400).json({
+                success: false,
+                error: result.error,
+                errors: result.errors
+            });
+        }
+    } catch (error) {
+        console.error('Error in POST /api/tenants/bulk-update:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to bulk update tenants'
+        });
+    }
+};
+
+router.post('/bulk-update', bulkUpdateTenantsHandler);
+router.patch('/bulk-update', bulkUpdateTenantsHandler);
+
 // Get tenant by ID
 router.get('/:id', async (req, res) => {
     try {

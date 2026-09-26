@@ -200,7 +200,9 @@ class RoomService extends BaseService {
         const BATCH_SIZE = 100;
 
         while (true) {
-            const queries = [Query.equal('status', 'active')];
+            // Order by $id so cursor pagination is stable — otherwise batches overlap
+            // and the same tenant is counted twice (see PendingRentService).
+            const queries = [Query.equal('status', 'active'), Query.orderAsc('$id')];
             if (cursor) {
                 queries.push(Query.cursorAfter(cursor));
             }

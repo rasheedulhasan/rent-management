@@ -213,6 +213,11 @@ class PendingRentService {
                 queries.push(Query.equal('room_id', room_id));
             }
 
+            // Cursor pagination REQUIRES a deterministic order. Without it the first
+            // (un-ordered) batch and the later id-ordered batches overlap, so the same
+            // ledger row is returned twice and every tenant's arrears is double-counted.
+            queries.push(Query.orderAsc('$id'));
+
             // Cursor-based pagination
             if (cursor) {
                 queries.push(Query.cursorAfter(cursor));

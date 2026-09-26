@@ -1,6 +1,6 @@
 const BaseService = require('./BaseService');
 const { TENANTS_COLLECTION_ID, RENT_LEDGER_COLLECTION_ID, RENT_TRANSACTIONS_COLLECTION_ID, BUILDINGS_COLLECTION_ID, Query, databases, DATABASE_ID } = require('../config/appwrite');
-const { query, withTransaction } = require('../config/db');
+const { query, withTransaction, generateId } = require('../config/db');
 const RoomService = require('./RoomService');
 
 class TenantService extends BaseService {
@@ -68,7 +68,29 @@ class TenantService extends BaseService {
     }
 
     async getTenantsByStatus(status = 'active') {
-        return await this.list([Query.equal('status', status)]);
+        // IMPORTANT: BaseService.list defaults to 25 per page, which would make the
+        // monthly rollover bill only the first 25 tenants. Page through everything.
+        const pageSize = 500;
+        let offset = 0;
+        const all = [];
+
+        while (true) {
+            const page = await this.list([Query.equal('status', status)], pageSize, offset);
+            if (!page.success) return page;
+
+            const docs = (page.data && page.data.documents) || [];
+            all.push(...docs);
+            if (docs.length < pageSize) break;
+            offset += pageSize;
+        }
+
+        return {
+            success: true,
+            data: {
+                documents: all,
+                total: all.length
+            }
+        };
     }
 
     async searchTenants(searchTerm) {
@@ -403,6 +425,90 @@ class TenantService extends BaseService {
         }
     }
     /**
+     * Make sure the tenant has a rent_ledger row for the given period and keep it
+     * in step with the tenant's edits.
+     *
+     *   - row missing           -> create it (pending) so the tenant shows rent + due date
+     *   - row exists, unpaid    -> re-price it when monthly_rent changed
+     *   - row exists            -> apply the new due date
+     *
+     * @returns {{ touched: number, created: boolean }}
+     */
+    async _syncCurrentPeriodLedger({ tenantId, tenant, periodYear, periodMonth, newRent, newDueDate, billingDayChanged }, nowIso) {
+        const existing = await query(
+            `SELECT id, amount_paid
+             FROM rent_ledger
+             WHERE tenant_id = $1 AND period_year = $2 AND period_month = $3
+             LIMIT 1`,
+            [tenantId, periodYear, periodMonth]
+        );
+
+        const rentForPeriod = newRent !== undefined
+            ? newRent
+            : (parseFloat(tenant.monthly_rent) || 0);
+
+        const dueDate = newDueDate !== undefined
+            ? newDueDate
+            : `${periodYear}-${String(periodMonth).padStart(2, '0')}-${String(tenant.billing_day || 1).padStart(2, '0')}`;
+
+        // ── existing row: patch it ──
+        if (existing.rows.length > 0) {
+            const row = existing.rows[0];
+            const sets = [];
+            const vals = [];
+            let n = 1;
+
+            // Only re-price a row nothing has been paid against.
+            const amountPaid = parseFloat(row.amount_paid) || 0;
+            if (newRent !== undefined && amountPaid === 0) {
+                sets.push(`monthly_rent = $${n++}`, `expected_rent = $${n++}`, `amount_due = $${n++}`, `pending_balance = $${n++}`);
+                vals.push(rentForPeriod, rentForPeriod, rentForPeriod, rentForPeriod);
+            }
+            const applyDueDate = newDueDate !== undefined || billingDayChanged === true;
+            if (applyDueDate) {
+                sets.push(`rent_due_date = $${n++}`);
+                vals.push(dueDate);
+            }
+            if (sets.length === 0) {
+                return { touched: 0, created: false };
+            }
+
+            sets.push(`updated_at = $${n++}`);
+            vals.push(nowIso);
+            vals.push(row.id);
+            await query(`UPDATE rent_ledger SET ${sets.join(', ')} WHERE id = $${n}`, vals);
+            return { touched: 1, created: false };
+        }
+
+        // ── no row yet: create this period's charge ──
+        const roomRes = await query(`SELECT room_number FROM rooms WHERE id = $1`, [tenant.room_id]);
+        const roomNumber = roomRes.rows[0] ? roomRes.rows[0].room_number : '';
+
+        await query(
+            `INSERT INTO rent_ledger
+                (id, ledger_uid, room_id, tenant_id, rent_period, tenant_name, room_number,
+                 monthly_rent, expected_rent, amount_due, amount_paid, pending_balance,
+                 status, payment_status, period_month, period_year, rent_due_date, overdue_days, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$8,0,$8,'pending','pending',$9,$10,$11,0,$12,$12)`,
+            [
+                generateId(),
+                `LEDGER-${tenantId.slice(0, 8)}-${periodYear}${String(periodMonth).padStart(2, '0')}`,
+                tenant.room_id || '',
+                tenantId,
+                `${periodYear}-${String(periodMonth).padStart(2, '0')}`,
+                tenant.full_name || 'Unknown',
+                roomNumber,
+                rentForPeriod,
+                periodMonth,
+                periodYear,
+                dueDate,
+                nowIso
+            ]
+        );
+        return { touched: 1, created: true };
+    }
+
+    /**
      * Bulk-edit several tenants in ONE request (mobile multi-select).
      *
      * Editable per tenant:
@@ -487,16 +593,21 @@ class TenantService extends BaseService {
             // ── Step 2: apply everything inside ONE transaction ──
             return await withTransaction(async () => {
                 const results = [];
-                const nowIso = new Date().toISOString();
+                const now = new Date();
+                const nowIso = now.toISOString();
 
                 for (const { index, id, changes } of rows) {
-                    const existing = await query(`SELECT id FROM tenants WHERE id = $1`, [id]);
+                    const existing = await query(
+                        `SELECT id, room_id, full_name, monthly_rent, billing_day FROM tenants WHERE id = $1`,
+                        [id]
+                    );
                     if (existing.rows.length === 0) {
                         // throws -> whole batch rolls back (all-or-nothing)
                         const err = new Error(`Tenant not found: ${id}`);
                         err.statusCode = 400;
                         throw err;
                     }
+                    const current = existing.rows[0];
 
                     const sets = [];
                     const vals = [];
@@ -515,15 +626,28 @@ class TenantService extends BaseService {
                         await query(`UPDATE tenants SET ${sets.join(', ')} WHERE id = $${n}`, vals);
                     }
 
+                    // Keep the CURRENT period's rent row in step. If the tenant has no row
+                    // yet (e.g. created after the monthly rollover) we create it, so the
+                    // rent amount / due date actually shows for that tenant.
                     let ledgerRowsUpdated = 0;
-                    if (changes.rent_due_date !== undefined) {
-                        const res = await query(
-                            `UPDATE rent_ledger
-                             SET rent_due_date = $2, updated_at = $3
-                             WHERE tenant_id = $1 AND status IN ('pending','overdue','partial')`,
-                            [id, changes.rent_due_date, nowIso]
-                        );
-                        ledgerRowsUpdated = res.rowCount;
+                    if (changes.monthly_rent !== undefined ||
+                        changes.rent_due_date !== undefined ||
+                        changes.billing_day !== undefined) {
+                        const sync = await this._syncCurrentPeriodLedger({
+                            tenantId: id,
+                            tenant: {
+                                room_id: current.room_id,
+                                full_name: changes.full_name !== undefined ? changes.full_name : current.full_name,
+                                monthly_rent: changes.monthly_rent !== undefined ? changes.monthly_rent : current.monthly_rent,
+                                billing_day: changes.billing_day !== undefined ? changes.billing_day : current.billing_day
+                            },
+                            periodYear: now.getFullYear(),
+                            periodMonth: now.getMonth() + 1,
+                            newRent: changes.monthly_rent,
+                            newDueDate: changes.rent_due_date,
+                            billingDayChanged: changes.billing_day !== undefined
+                        }, nowIso);
+                        ledgerRowsUpdated = sync.touched;
                     }
 
                     results.push({

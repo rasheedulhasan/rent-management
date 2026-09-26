@@ -96,7 +96,12 @@ class RentLedgerCycleService {
                     const roomResult = await RoomService.getById(tenant.room_id);
                     if (roomResult.success) {
                         roomNumber = roomResult.data.room_number || '';
-                        roomMonthlyRent = parseFloat(roomResult.data.monthly_rent) || monthlyRent;
+                        // The tenant's monthly_rent is authoritative (that's what staff
+                        // edit in the app); only fall back to the room's rent when the
+                        // tenant has none.
+                        if (!roomMonthlyRent) {
+                            roomMonthlyRent = parseFloat(roomResult.data.monthly_rent) || 0;
+                        }
                     }
                 } catch (e) {
                     // Room lookup failed, use tenant's monthly_rent
@@ -289,14 +294,17 @@ class RentLedgerCycleService {
         }
         carryForward = this._round2(carryForward);
 
-        // Room monthly rent (prefer room rent, fall back to tenant rent).
+        // The tenant's monthly_rent is authoritative (that's what staff edit in the
+        // app); only fall back to the room's rent when the tenant has none.
         let monthlyRent = tenantRent;
         let roomNumber = '';
         try {
             const roomResult = await RoomService.getById(tenant.room_id);
             if (roomResult.success) {
                 roomNumber = roomResult.data.room_number || '';
-                monthlyRent = parseFloat(roomResult.data.monthly_rent) || tenantRent;
+                if (!monthlyRent) {
+                    monthlyRent = parseFloat(roomResult.data.monthly_rent) || 0;
+                }
             }
         } catch (e) {
             // ignore room lookup failure

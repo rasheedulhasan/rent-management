@@ -421,8 +421,8 @@ class TenantService extends BaseService {
             if (!Array.isArray(updates) || updates.length === 0) {
                 return { success: false, statusCode: 400, error: 'tenants must be a non-empty array' };
             }
-            if (updates.length > 200) {
-                return { success: false, statusCode: 400, error: 'Too many tenants in one request (max 200)' };
+            if (updates.length > 10) {
+                return { success: false, statusCode: 400, error: 'Too many tenants in one request (max 10)' };
             }
 
             // ── Step 1: validate every row up-front (nothing is written yet) ──

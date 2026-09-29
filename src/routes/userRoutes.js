@@ -6,7 +6,7 @@ const { Query } = require('../config/appwrite');
 // Get all users
 router.get('/', async (req, res) => {
     try {
-        const { role, status, limit = 25, offset = 0 } = req.query;
+        const { role, status, limit = 500, offset = 0 } = req.query;
         const queries = [];
         
         if (role) {

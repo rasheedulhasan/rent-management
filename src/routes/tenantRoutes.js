@@ -8,7 +8,7 @@ const { Query } = require('../config/appwrite');
 // Get all tenants
 router.get('/', async (req, res) => {
     try {
-        const { status, room_id, limit = 25, offset = 0 } = req.query;
+        const { status, room_id, limit = 500, offset = 0 } = req.query;
         const queries = [];
         
         if (status) {

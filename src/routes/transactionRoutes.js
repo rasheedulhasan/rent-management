@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
             collected_by,
             period_year,
             period_month,
-            limit = 25, 
+            limit = 500, 
             offset = 0 
         } = req.query;
         

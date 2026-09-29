@@ -6,7 +6,7 @@ const { Query } = require('../config/appwrite');
 // Get all buildings
 router.get('/', async (req, res) => {
     try {
-        const { status, limit = 25, offset = 0 } = req.query;
+        const { status, limit = 500, offset = 0 } = req.query;
         const queries = [];
         
         if (status) {

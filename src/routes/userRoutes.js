@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userService = require('../services/UserService');
+const { Query } = require('../config/appwrite');
 
 // Get all users
 router.get('/', async (req, res) => {
@@ -9,11 +10,11 @@ router.get('/', async (req, res) => {
         const queries = [];
         
         if (role) {
-            queries.push(`equal("role", "${role}")`);
+            queries.push(Query.equal('role', role));
         }
         
         if (status) {
-            queries.push(`equal("status", "${status}")`);
+            queries.push(Query.equal('status', status));
         }
         
         const result = await userService.list(queries, parseInt(limit), parseInt(offset));

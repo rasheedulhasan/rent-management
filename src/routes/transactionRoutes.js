@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const transactionService = require('../services/RentTransactionService');
+const { Query } = require('../config/appwrite');
 
 // Get all transactions
 router.get('/', async (req, res) => {
@@ -19,27 +20,27 @@ router.get('/', async (req, res) => {
         const queries = [];
         
         if (status) {
-            queries.push(`equal("payment_status", "${status}")`);
+            queries.push(Query.equal('payment_status', status));
         }
         
         if (tenant_id) {
-            queries.push(`equal("tenant_id", "${tenant_id}")`);
+            queries.push(Query.equal('tenant_id', tenant_id));
         }
         
         if (room_id) {
-            queries.push(`equal("room_id", "${room_id}")`);
+            queries.push(Query.equal('room_id', room_id));
         }
         
         if (collected_by) {
-            queries.push(`equal("collected_by", "${collected_by}")`);
+            queries.push(Query.equal('collected_by', collected_by));
         }
         
         if (period_year) {
-            queries.push(`equal("period_year", ${period_year})`);
+            queries.push(Query.equal('period_year', parseInt(period_year)));
         }
         
         if (period_month) {
-            queries.push(`equal("period_month", ${period_month})`);
+            queries.push(Query.equal('period_month', parseInt(period_month)));
         }
         
         const result = await transactionService.list(queries, parseInt(limit), parseInt(offset), 'transaction_date', 'DESC');

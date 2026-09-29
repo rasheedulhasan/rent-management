@@ -3,6 +3,7 @@ const router = express.Router();
 const tenantService = require('../services/TenantService');
 const tenantCsvService = require('../services/TenantCsvService');
 const depositService = require('../services/DepositService');
+const { Query } = require('../config/appwrite');
 
 // Get all tenants
 router.get('/', async (req, res) => {
@@ -11,11 +12,11 @@ router.get('/', async (req, res) => {
         const queries = [];
         
         if (status) {
-            queries.push(`equal("status", "${status}")`);
+            queries.push(Query.equal('status', status));
         }
         
         if (room_id) {
-            queries.push(`equal("room_id", "${room_id}")`);
+            queries.push(Query.equal('room_id', room_id));
         }
         
         const result = await tenantService.list(queries, parseInt(limit), parseInt(offset));

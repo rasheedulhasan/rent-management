@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const buildingService = require('../services/BuildingService');
+const { Query } = require('../config/appwrite');
 
 // Get all buildings
 router.get('/', async (req, res) => {
@@ -9,7 +10,7 @@ router.get('/', async (req, res) => {
         const queries = [];
         
         if (status) {
-            queries.push(`equal("status", "${status}")`);
+            queries.push(Query.equal('status', status));
         }
         
         const result = await buildingService.list(queries, parseInt(limit), parseInt(offset));

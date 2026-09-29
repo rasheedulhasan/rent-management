@@ -12,7 +12,7 @@ const { Query } = require('../config/appwrite');
 // GET /api/rooms/populated - Get all rooms with building name + current tenant
 router.get('/populated', async (req, res) => {
     try {
-        const { building_id, status, floor, search, limit = 50, offset = 0 } = req.query;
+        const { building_id, status, floor, search, limit = 500, offset = 0 } = req.query;
         const queries = [];
         
         if (building_id) {
@@ -176,7 +176,7 @@ router.post('/csv/import', async (req, res) => {
 // Get all rooms (raw)
 router.get('/', async (req, res) => {
     try {
-        const { building_id, status, floor, search, limit = 50, offset = 0 } = req.query;
+        const { building_id, status, floor, search, limit = 500, offset = 0 } = req.query;
         const queries = [];
         
         if (building_id) {

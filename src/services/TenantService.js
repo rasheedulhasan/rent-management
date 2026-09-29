@@ -61,10 +61,10 @@ class TenantService extends BaseService {
 
     async getTenantsByRoom(roomId, status = 'active') {
         const queries = [
-            `equal("room_id", "${roomId}")`,
-            `equal("status", "${status}")`
+            Query.equal('room_id', roomId),
+            Query.equal('status', status)
         ];
-        return await this.list(queries);
+        return await this.list(queries, 500, 0);
     }
 
     async getTenantsByStatus(status = 'active') {
@@ -96,15 +96,15 @@ class TenantService extends BaseService {
     async searchTenants(searchTerm) {
         // Search by name, phone, or email
         const queries = [
-            `search("full_name", "${searchTerm}")`
+            Query.search('full_name', searchTerm)
         ];
         
         try {
-            const result = await this.list(queries);
+            const result = await this.list(queries, 100, 0);
             return result;
         } catch (error) {
             // If search fails, try exact match on phone
-            return await this.list([`equal("phone_number", "${searchTerm}")`]);
+            return await this.list([Query.equal('phone_number', searchTerm)], 100, 0);
         }
     }
 

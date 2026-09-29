@@ -90,7 +90,7 @@ class BaseService {
                 this.databaseId,
                 this.collectionId,
                 [
-                    `equal("${searchField}", "${query}")`
+                    Query.equal(searchField, query)
                 ]
             );
             return { success: true, data: documents };

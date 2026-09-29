@@ -146,7 +146,27 @@ class RoomService extends BaseService {
         if (status) {
             queries.push(Query.equal('status', status));
         }
-        return await this.getAllRoomsPopulated(queries, 100, 0);
+
+        // Return EVERY room for the building. A single query used to cap at 100,
+        // so buildings with more rooms were silently truncated in the app.
+        const pageSize = 500;
+        let offset = 0;
+        const all = [];
+        let total = 0;
+
+        while (true) {
+            const page = await this.getAllRoomsPopulated(queries, pageSize, offset);
+            if (!page.success) return page;
+
+            const docs = (page.data && page.data.documents) || [];
+            total = (page.data && page.data.total) || docs.length;
+            all.push(...docs);
+
+            if (docs.length < pageSize || all.length >= total) break;
+            offset += pageSize;
+        }
+
+        return { success: true, data: { documents: all, total } };
     }
 
     /**

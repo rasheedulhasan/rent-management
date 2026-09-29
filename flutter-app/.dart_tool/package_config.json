@@ -57,7 +57,7 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///C:/Users/oromu/Downloads/flutter_windows_3.22.3-stable/flutter/flutter/packages/flutter",
+      "rootUri": "file:///C:/flutter/packages/flutter",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -69,13 +69,13 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///C:/Users/oromu/Downloads/flutter_windows_3.22.3-stable/flutter/flutter/packages/flutter_test",
+      "rootUri": "file:///C:/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///C:/Users/oromu/Downloads/flutter_windows_3.22.3-stable/flutter/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///C:/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -165,7 +165,7 @@
     },
     {
       "name": "sky_engine",
-      "rootUri": "file:///C:/Users/oromu/Downloads/flutter_windows_3.22.3-stable/flutter/flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///C:/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -286,7 +286,7 @@
   ],
   "generator": "pub",
   "generatorVersion": "3.11.5",
-  "flutterRoot": "file:///C:/Users/oromu/Downloads/flutter_windows_3.22.3-stable/flutter/flutter",
-  "flutterVersion": "3.22.3",
+  "flutterRoot": "file:///C:/flutter",
+  "flutterVersion": "3.41.9",
   "pubCache": "file:///C:/Users/oromu/AppData/Local/Pub/Cache"
 }
